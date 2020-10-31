@@ -1,2 +1,4 @@
 generated/
 build/
+.clangd/
+minipy

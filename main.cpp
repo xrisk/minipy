@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
+/* Copyright (c) 2011-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
  */
@@ -10,30 +10,43 @@
 //  Created by Mike Lischke on 13.03.16.
 //
 
+#include <fstream>
 #include <iostream>
 
+#include "ANTLRInputStream.h"
 #include "antlr4-runtime.h"
-#include "generated/MiniCLexer.h";
-#include "generated/MiniCParser.h";
 
-using namespace antlrcpptest;
+#include "generated/MiniCLexer.h"
+#include "generated/MiniCParser.h"
+#include "support/Declarations.h"
+#include "tree/ParseTree.h"
+
+#include "AST.h"
+#include "ParseTreeVisitor.h"
+
 using namespace antlr4;
 
-int main(int, const char **) {
-  ANTLRInputStream input(
-      u8"🍴 = 🍐 + \"😎\";(((x * π))) * µ + ∰; a + (x * (y ? 0 : 1) + z);");
+int main(int argc, char **argv) {
+
+  if (argc != 2) {
+    std::cout << "Usage: ./prog <filename>\n";
+    return 1;
+  }
+
+  std::ifstream file(argv[1]);
+
+  ANTLRInputStream input(file);
   MiniCLexer lexer(&input);
   CommonTokenStream tokens(&lexer);
 
   tokens.fill();
-  for (auto token : tokens.getTokens()) {
-    std::cout << token->toString() << std::endl;
-  }
 
   MiniCParser parser(&tokens);
-  tree::ParseTree *tree = parser.main();
+  MiniCParser::ProgContext *ctx = parser.prog();
 
-  std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
+  ParseTreeVisitor vis;
+  /* std::string foo = vis.visitProg(ctx).as<std::string>(); */
+  AST *ast = vis.visitProg(ctx).as<AST *>();
 
-  return 0;
+  ast->print();
 }
