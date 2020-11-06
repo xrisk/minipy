@@ -8,20 +8,21 @@ datatype : datatype_base  ('[' expr ']')? ( '[' expr ']' )? ;
 
 unary: NOT ;
 binop_exp: EXP ;
-binop1: MULT | DIV | MODULO ;
+binop1: DIV | MULT | MODULO ;
 binop2: ADD | SUB ;
 binop3: LT | GT | LEQ | NEQ | GEQ | EQ ;
 binop4: AND | OR; 
-array_literal_1d: '{' expr (',' expr)* '}';
-array_literal_2d: '{' array_literal_1d (',' array_literal_1d)* '}';
-array_literal: array_literal_1d | array_literal_2d;
+
+array_literal: '{' expr (',' expr)* '}';
 
 bool_literal: 'True' | 'False' ;
 char_literal: CHAR;
 
 literal: INT_LITERAL | bool_literal | array_literal | char_literal ;
 
-fn_call: IDENT '(' (expr (',' expr)*)? ')' ;
+fn_call: IDENT LPAREN (expr (',' expr)*)? RPAREN ;
+
+assign_expr : IDENT ASSIGN expr ;
 
 expr : 
     unary expr 
@@ -30,19 +31,29 @@ expr :
     | expr binop2 expr
     | expr binop3 expr
     | expr binop4 expr
+    | <assoc=right> assign_expr
     | fn_call
     | literal
     | IDENT
     | IDENT '[' expr ']'
     | IDENT '[' expr ']' '[' expr ']'
     | expr 'if' expr 'else' expr
-    | '(' expr ')'
+    | LPAREN expr RPAREN
      ;
 
 block: '{' stmt+ '}' ;
 
-if_stmt: 'if' expr  block ('elif' expr  block)* ('else' block )? ;
-for_stmt: 'for' '(' simple_stmt ';' expr ';' simple_stmt ')' block ;
+elif_block: ELIF expr block ;
+else_block: ELSE block ;
+
+if_stmt: IF expr block 
+          elif_block*
+          else_block? ;
+
+for_init: simple_stmt ;
+for_cond: expr ;
+for_update: simple_stmt ;
+for_stmt: 'for' LPAREN for_init? ';' for_cond? ';' for_update? RPAREN block ;
 while_stmt: 'while' expr block ;
 
 
@@ -58,7 +69,7 @@ assignment : (IDENT |
              IDENT '[' expr ']' | 
              IDENT '[' expr ']'  '[' expr ']' ) ASSIGN  expr;
 
-simple_stmt: decl | assignment | fn_call | return_stmt;
+simple_stmt: decl | expr | return_stmt;
 
 stmt : simple_stmt EOL
     | if_stmt 
@@ -88,11 +99,17 @@ EQ: '==';
 MODULO: '%';
 EOL: ';';
 ASSIGN: '=' ;
+
+IF: 'if' ;
+ELIF: 'elif';
+ELSE: 'else';
+
 CHAR: '\''[A-Za-z0-9 ]'\'';
 IDENT: [a-zA-Z][a-zA-Z0-9_]*;
 INT_LITERAL: [0-9A-Fa-f]+;
 WS: [ \t\r\n]+ -> skip;
-
+LPAREN: '(' ;
+RPAREN: ')' ;
 
 fragment SPACES
  : [ \t]+
