@@ -22,7 +22,11 @@ literal: INT_LITERAL | bool_literal | array_literal | char_literal ;
 
 fn_call: IDENT LPAREN (expr (',' expr)*)? RPAREN ;
 
-assign_expr : IDENT ASSIGN expr ;
+assign_expr : loc ASSIGN expr ;
+
+loc : IDENT
+    | IDENT '[' expr ']' 
+    | IDENT '[' expr ']' '[' expr ']' ;
 
 expr : 
     unary expr 
@@ -34,9 +38,7 @@ expr :
     | <assoc=right> assign_expr
     | fn_call
     | literal
-    | IDENT
-    | IDENT '[' expr ']'
-    | IDENT '[' expr ']' '[' expr ']'
+    | loc
     | expr 'if' expr 'else' expr
     | LPAREN expr RPAREN
      ;

@@ -147,9 +147,17 @@ struct OperatorExpr : Expr {
 
 struct IdentifierExpr : Expr {
   Identifier id;
+  std::vector<Expr *> idx;
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "IdentifierExpr:\n";
     std::cout << mkindent(indent + 1) << id << '\n';
+
+    if (idx.size() > 0) {
+      cout << mkindent(indent + 1) << "idx:\n";
+      for (auto expr : idx) {
+        expr->print(indent + 2);
+      }
+    }
   }
 };
 

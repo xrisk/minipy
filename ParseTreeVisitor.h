@@ -120,9 +120,15 @@ public:
     if (ctx->LPAREN())
       return ctx->expr(0)->accept(this);
 
-    if (ctx->IDENT()) {
+    if (ctx->loc()) {
       IdentifierExpr *node = new IdentifierExpr();
-      node->id = ctx->IDENT()->getText();
+      node->id = ctx->loc()->IDENT()->getText();
+
+      for (auto e : ctx->loc()->expr()) {
+        ASTNode *temp = e->accept(this);
+        node->idx.push_back(dynamic_cast<Expr *>(temp));
+      }
+
       return (ASTNode *)node;
     }
 
@@ -179,7 +185,13 @@ public:
       } else if (ctx->assign_expr()) {
         node->op = Op::ASSIGN;
         IdentifierExpr *ident = new IdentifierExpr();
-        ident->id = ctx->assign_expr()->IDENT()->getText();
+        ident->id = ctx->assign_expr()->loc()->IDENT()->getText();
+
+        for (auto expr : ctx->assign_expr()->loc()->expr()) {
+          ASTNode *temp = expr->accept(this);
+          ident->idx.push_back(static_cast<Expr *>(temp));
+        }
+
         node->args.push_back((Expr *)ident);
 
         ASTNode *temp = ctx->assign_expr()->expr()->accept(this);
@@ -196,14 +208,11 @@ public:
     }
 
     if (ctx->literal()) {
-      return ctx->literal()->accept(this);
+      return (ASTNode *)ctx->literal()->accept(this);
     }
 
     if (ctx->fn_call()) {
-      return ctx->fn_call()->accept(this);
-    }
-
-    if (ctx->assign_expr()) {
+      return (ASTNode *)ctx->fn_call()->accept(this);
     }
 
     std::cout << ctx->getText() << '\n';
