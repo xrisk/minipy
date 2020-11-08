@@ -43,7 +43,7 @@ expr :
     | LPAREN expr RPAREN
      ;
 
-block: '{' stmt+ '}' ;
+block: '{' stmt* '}' ;
 
 elif_block: ELIF expr block ;
 else_block: ELSE block ;

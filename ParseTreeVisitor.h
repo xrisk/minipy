@@ -20,8 +20,7 @@ public:
     ProgNode *p = new ProgNode();
 
     for (auto func : ctx->function_decl()) {
-      ASTNode *node = func->accept(this);
-      p->body.push_back(dynamic_cast<FnDecl *>(node));
+      p->body.push_back(func->accept(this));
     }
 
     ast->root = p;
@@ -31,36 +30,33 @@ public:
 
   Any visitSimple_stmt(MiniCParser::Simple_stmtContext *ctx) override {
     if (ctx->decl()) {
-      return (ASTNode *)ctx->decl()->accept(this);
+      return (Statement *)((Declaration *)((ctx->decl()->accept(this))));
     }
     if (ctx->expr()) {
       ExprStatement *node = new ExprStatement();
-
-      ASTNode *temp = ctx->expr()->accept(this);
-      node->expr = dynamic_cast<Expr *>(temp);
-      return (ASTNode *)node;
+      node->expr = ctx->expr()->accept(this);
+      return (Statement *)node;
     }
     if (ctx->return_stmt()) {
       Return *node = new Return();
-      ASTNode *temp = ctx->return_stmt()->expr()->accept(this);
-      node->expr = dynamic_cast<Expr *>(temp);
-      return (ASTNode *)node;
+      node->expr = ctx->return_stmt()->expr()->accept(this);
+      return (Statement *)node;
     }
     assert(false && "unreachable code - simpleStatement");
   }
 
   Any visitStmt(MiniCParser::StmtContext *ctx) override {
     if (ctx->if_stmt()) {
-      return (ASTNode *)ctx->if_stmt()->accept(this);
+      return (Statement *)(If *)ctx->if_stmt()->accept(this);
     }
     if (ctx->for_stmt()) {
-      return (ASTNode *)ctx->for_stmt()->accept(this);
+      return (Statement *)(ForNode *)ctx->for_stmt()->accept(this);
     }
     if (ctx->while_stmt()) {
-      return (ASTNode *)ctx->while_stmt()->accept(this);
+      return (Statement *)(While *)ctx->while_stmt()->accept(this);
     }
     // simple statement
-    return (ASTNode *)ctx->simple_stmt()->accept(this);
+    return (Statement *)ctx->simple_stmt()->accept(this);
   }
 
   /* Any visitIf_stmt(MiniCParser::If_stmtContext *ctx) override {} */
@@ -70,28 +66,24 @@ public:
     FnDecl *node = new FnDecl();
     node->name = ctx->IDENT(0)->getText();
 
-    ASTNode *temp = ctx->return_type()->datatype()->accept(this);
-    node->returntype = dynamic_cast<Type *>(temp);
+    node->returntype = ctx->return_type()->datatype()->accept(this);
 
     for (auto stat : ctx->block()->stmt()) {
-      ASTNode *n = stat->accept(this);
-      node->body.push_back(dynamic_cast<Statement *>(n));
+      node->body.push_back(stat->accept(this));
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   Any visitDecl(MiniCParser::DeclContext *ctx) override {
     Declaration *node = new Declaration();
     node->name = new std::string(ctx->IDENT()->getText());
 
-    ASTNode *n = ctx->datatype()->accept(this);
-    node->datatype = dynamic_cast<Type *>(n);
+    node->datatype = ctx->datatype()->accept(this);
 
     if (ctx->expr()) {
-      ASTNode *t = ctx->expr()->accept(this);
-      node->rval = dynamic_cast<Expr *>(t);
+      node->rval = ctx->expr()->accept(this);
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   Any visitDatatype(MiniCParser::DatatypeContext *ctx) override {
@@ -108,10 +100,9 @@ public:
     if (node->base == BaseType::Void && ctx->expr().size() > 0)
       assert(false && "void type should not have dimensions");
     for (auto expr : ctx->expr()) {
-      ASTNode *n = expr->accept(this);
-      node->dims.push_back(dynamic_cast<Expr *>(n));
+      node->dims.push_back(expr->accept(this));
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   // TODO: refactor
@@ -125,11 +116,10 @@ public:
       node->id = ctx->loc()->IDENT()->getText();
 
       for (auto e : ctx->loc()->expr()) {
-        ASTNode *temp = e->accept(this);
-        node->idx.push_back(dynamic_cast<Expr *>(temp));
+        node->idx.push_back(e->accept(this));
       }
 
-      return (ASTNode *)node;
+      return (Expr *)node;
     }
 
     if (ctx->unary() || ctx->binop_exp() || ctx->binop1() || ctx->binop2() ||
@@ -188,31 +178,29 @@ public:
         ident->id = ctx->assign_expr()->loc()->IDENT()->getText();
 
         for (auto expr : ctx->assign_expr()->loc()->expr()) {
-          ASTNode *temp = expr->accept(this);
-          ident->idx.push_back(static_cast<Expr *>(temp));
+          ident->idx.push_back(expr->accept(this));
         }
 
         node->args.push_back((Expr *)ident);
+        node->args.push_back(ctx->assign_expr()->expr()->accept(this));
 
-        ASTNode *temp = ctx->assign_expr()->expr()->accept(this);
-        node->args.push_back(dynamic_cast<Expr *>(temp));
-        return (ASTNode *)node;
+        return (Expr *)node;
       }
 
       for (auto e : ctx->expr()) {
-        ASTNode *t = e->accept(this);
-        Expr *arg = dynamic_cast<Expr *>(t);
-        node->args.push_back(arg);
+        node->args.push_back(e->accept(this));
       }
-      return (ASTNode *)node;
+      return (Expr *)node;
     }
 
     if (ctx->literal()) {
-      return (ASTNode *)ctx->literal()->accept(this);
+      LiteralExpr *temp = ctx->literal()->accept(this);
+      return (Expr *)temp;
+      /* return (Expr *)ctx->literal()->accept(this); */
     }
 
     if (ctx->fn_call()) {
-      return (ASTNode *)ctx->fn_call()->accept(this);
+      return (Expr *)(OperatorExpr *)ctx->fn_call()->accept(this);
     }
 
     std::cout << ctx->getText() << '\n';
@@ -223,7 +211,7 @@ public:
     if (val->INT_LITERAL()) {
       IntLiteral *n = new IntLiteral();
       n->value = atoi(val->INT_LITERAL()->getText().c_str());
-      return (ASTNode *)n;
+      return (LiteralExpr *)n;
     }
 
     if (val->bool_literal()) {
@@ -232,22 +220,21 @@ public:
         n->value = true;
       else
         n->value = false;
-      return (ASTNode *)n;
+      return (LiteralExpr *)n;
     }
 
     if (val->array_literal()) {
       ArrayLiteral *node = new ArrayLiteral();
       for (auto expr : val->array_literal()->expr()) {
-        ASTNode *temp = expr->accept(this);
-        node->vals.push_back(dynamic_cast<Expr *>(temp));
+        node->vals.push_back(expr->accept(this));
       }
-      return (ASTNode *)node;
+      return (LiteralExpr *)node;
     }
 
     if (val->char_literal()) {
       CharLiteral *node = new CharLiteral();
       node->value = val->char_literal()->getText()[1];
-      return (ASTNode *)node;
+      return (LiteralExpr *)node;
     }
 
     assert(false && "unreachable code");
@@ -260,29 +247,25 @@ public:
     funcName->id = ctx->IDENT()->getText();
     node->args.push_back(funcName);
     for (auto exp : ctx->expr()) {
-      ASTNode *temp = exp->accept(this);
-      node->args.push_back(dynamic_cast<Expr *>(temp));
+      node->args.push_back(exp->accept(this));
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   Any visitIf_stmt(MiniCParser::If_stmtContext *ctx) override {
     If *node = new If();
-    ASTNode *temp = ctx->expr()->accept(this);
-    node->condition = dynamic_cast<Expr *>(temp);
+    node->condition = ctx->expr()->accept(this);
     for (auto stmt : ctx->block()->stmt()) {
-      temp = stmt->accept(this);
-      node->body.push_back(dynamic_cast<Statement *>(temp));
+      node->body.push_back(stmt->accept(this));
     }
 
     if (ctx->elif_block().size() > 0) {
       for (auto elif : ctx->elif_block()) {
-        temp = elif->expr()->accept(this);
-        Expr *temp2 = dynamic_cast<Expr *>(temp);
+        Expr *temp2 = elif->expr()->accept(this);
+
         std::vector<Statement *> temp3;
         for (auto stmt : elif->block()->stmt()) {
-          temp = stmt->accept(this);
-          temp3.push_back(dynamic_cast<Statement *>(temp));
+          temp3.push_back(stmt->accept(this));
         }
         node->elifs.push_back(std::make_pair(temp2, temp3));
       }
@@ -290,43 +273,37 @@ public:
 
     if (ctx->else_block()) {
       for (auto stmt : ctx->else_block()->block()->stmt()) {
-        ASTNode *temp = stmt->accept(this);
-        node->else_.push_back(dynamic_cast<Statement *>(temp));
+        node->else_.push_back(stmt->accept(this));
       }
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   Any visitWhile_stmt(MiniCParser::While_stmtContext *ctx) override {
     While *node = new While();
-    ASTNode *temp = ctx->expr()->accept(this);
-    node->cond = dynamic_cast<Expr *>(temp);
+    node->cond = ctx->expr()->accept(this);
 
     for (auto stmt : ctx->block()->stmt()) {
-      temp = stmt->accept(this);
-      node->body.push_back(dynamic_cast<Statement *>(temp));
+      node->body.push_back(stmt->accept(this));
     }
-    return (ASTNode *)node;
+    return node;
   }
 
   Any visitFor_stmt(MiniCParser::For_stmtContext *ctx) override {
     ForNode *node = new ForNode();
 
     if (ctx->for_init()) {
-      ASTNode *temp = ctx->for_init()->simple_stmt()->accept(this);
-      node->init = dynamic_cast<Statement *>(temp);
+      node->init = ctx->for_init()->simple_stmt()->accept(this);
     }
 
     if (ctx->for_cond()) {
-      ASTNode *temp = ctx->for_cond()->expr()->accept(this);
-      node->cond = dynamic_cast<Expr *>(temp);
+      node->cond = ctx->for_cond()->expr()->accept(this);
     }
 
     if (ctx->for_update()) {
-      ASTNode *temp = ctx->for_update()->simple_stmt()->accept(this);
-      node->update = dynamic_cast<Statement *>(temp);
+      node->update = ctx->for_update()->simple_stmt()->accept(this);
     }
 
-    return (ASTNode *)node;
+    return node;
   }
 };
