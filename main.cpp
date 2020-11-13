@@ -22,6 +22,7 @@
 #include "tree/ParseTree.h"
 
 #include "AST.h"
+#include "Analysis.h"
 #include "ParseTreeVisitor.h"
 
 using namespace antlr4;
@@ -42,11 +43,24 @@ int main(int argc, char **argv) {
   tokens.fill();
 
   MiniCParser parser(&tokens);
+
   MiniCParser::ProgContext *ctx = parser.prog();
 
+  auto err = parser.getNumberOfSyntaxErrors();
+
+  if (err != 0)
+    return 1;
+
   ParseTreeVisitor vis;
-  /* std::string foo = vis.visitProg(ctx).as<std::string>(); */
   AST *ast = vis.visitProg(ctx).as<AST *>();
 
   ast->print();
+
+  AnalysisVisitor phase2;
+
+  if (ast->root->accept(&phase2)) {
+    std::cout << "semantically valid\n";
+  } else {
+    std::cout << "invalid";
+  }
 }

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 
+#include "AnalysisVisitor.h"
+
 using std::cout;
 
 typedef std::string Identifier;
@@ -15,9 +17,11 @@ inline std::string mkindent(int count) {
   return s;
 }
 
-struct ASTNode {
+struct ASTNode : AnalysisVisitable {
   virtual void print(int indent = 0) { cout << "ASTNode" << '\n'; }
   virtual ~ASTNode() {}
+
+  bool accept(AnalysisVisitor *vis) override { return true; }
 };
 
 enum BaseType { Int8, Int32, Void };
@@ -203,7 +207,9 @@ struct FnDecl : ASTNode {
   Type *returntype;
   std::vector<Statement *> body;
 
-  void print(int indent = 0) {
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "FnDecl" << '\n';
     cout << mkindent(indent + 1) << "name: " << name << '\n';
     cout << mkindent(indent + 1) << "returntype:\n";
@@ -219,6 +225,8 @@ struct Declaration : Statement {
   Identifier *name;
   Type *datatype;
   Expr *rval = nullptr;
+
+  bool accept(AnalysisVisitor *vis) override;
 
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "Declaration\n";
@@ -322,7 +330,9 @@ struct ForNode : Statement {
 struct ProgNode : ASTNode {
   std::vector<FnDecl *> body;
 
-  void print(int indent = 0) {
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent);
     cout << "ProgNode" << '\n';
     for (auto fn : body) {
