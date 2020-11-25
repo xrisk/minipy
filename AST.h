@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <iostream>
 #include <vector>
 
@@ -24,7 +25,7 @@ struct ASTNode : AnalysisVisitable {
   bool accept(AnalysisVisitor *vis) override { return true; }
 };
 
-enum BaseType { Int8, Int32, Void };
+enum BaseType { Int8, Int32, Void, Bool, Char, Fn };
 
 std::ostream &operator<<(std::ostream &o, BaseType &t) {
   switch (t) {
@@ -37,14 +38,43 @@ std::ostream &operator<<(std::ostream &o, BaseType &t) {
   case BaseType::Void:
     o << "Void";
     return o;
+  case BaseType::Bool:
+    o << "Bool";
+    return o;
+  case BaseType::Char:
+    o << "Char";
+    return o;
+  case BaseType::Fn:
+    o << "Fn";
+    return o;
   }
 }
 
-struct Expr : ASTNode {};
+struct Expr : ASTNode {
+  /* bool accept(AnalysisVisitor *vis) override; */
+
+  virtual Type *getType(AnalysisVisitor *vis) = 0;
+};
 
 struct Type : ASTNode {
   BaseType base;
   std::vector<Expr *> dims;
+  std::vector<Type *> fnTypes;
+
+  bool operator==(Type other) const {
+    if (base != other.base)
+      return false;
+    assert((((void)"type has both array and fn kind",
+             !(dims.size() > 0 && fnTypes.size() > 0))));
+    assert(((((void)"type has both array and fn kind",
+              !(other.dims.size() > 0 && other.fnTypes.size() > 0)))));
+    return dims.size() == other.dims.size() &&
+           fnTypes.size() == other.fnTypes.size();
+  }
+
+  bool operator!=(Type other) const { return !(*this == other); }
+
+  Type(BaseType base) : base(base) {}
 
   void print(int indent = 0) override {
     cout << mkindent(indent) << "Type:\n";
@@ -133,9 +163,22 @@ std::ostream &operator<<(std::ostream &o, Op &op) {
   }
 }
 
+int getOperatorArity(Op o) {
+  if (o == FNCALL)
+    return -1;
+  else if (o == NOT)
+    return 1;
+  else
+    return 2;
+}
+
 struct OperatorExpr : Expr {
   Op op;
   std::vector<Expr *> args;
+
+  Type *getType(AnalysisVisitor *vis) override;
+
+  bool accept(AnalysisVisitor *vis) override;
 
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "OperatorExpr:\n";
@@ -152,6 +195,10 @@ struct OperatorExpr : Expr {
 struct IdentifierExpr : Expr {
   Identifier id;
   std::vector<Expr *> idx;
+
+  bool accept(AnalysisVisitor *vis) override;
+
+  Type *getType(AnalysisVisitor *vis) override;
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "IdentifierExpr:\n";
     std::cout << mkindent(indent + 1) << id << '\n';
@@ -170,6 +217,8 @@ struct LiteralExpr : Expr {};
 struct IntLiteral : LiteralExpr {
   int value;
 
+  Type *getType(AnalysisVisitor *vis) override;
+
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "IntLiteral:\n";
     std::cout << mkindent(indent + 1) << value << '\n';
@@ -177,13 +226,22 @@ struct IntLiteral : LiteralExpr {
 };
 
 struct BoolLiteral : LiteralExpr {
+
+  Type *getType(AnalysisVisitor *vis) override;
   bool value;
+
+  void print(int indent = 0) override {
+    cout << mkindent(indent) << "BoolLiteral:\n";
+    cout << mkindent(indent + 1) << (value ? "True" : "false") << '\n';
+  }
 };
 
 struct ArrayLiteral : LiteralExpr {
   std::vector<Expr *> vals;
 
-  void print(int indent = 0) {
+  Type *getType(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "ArrayLiteral:\n";
     for (auto expr : vals) {
       expr->print(indent + 1);
@@ -193,7 +251,9 @@ struct ArrayLiteral : LiteralExpr {
 
 struct CharLiteral : LiteralExpr {
   char value;
-  void print(int indent = 0) {
+
+  Type *getType(AnalysisVisitor *vis) override;
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "CharLiteral:\n";
     cout << mkindent(indent + 1) << "value:\n";
     cout << mkindent(indent + 2) << value << '\n';
@@ -205,6 +265,8 @@ struct Statement : ASTNode {};
 struct FnDecl : ASTNode {
   Identifier name;
   Type *returntype;
+
+  std::vector<std::pair<Type *, Identifier>> args;
   std::vector<Statement *> body;
 
   bool accept(AnalysisVisitor *vis) override;
@@ -214,6 +276,13 @@ struct FnDecl : ASTNode {
     cout << mkindent(indent + 1) << "name: " << name << '\n';
     cout << mkindent(indent + 1) << "returntype:\n";
     returntype->print(indent + 2);
+    cout << mkindent(indent + 1) << "args:\n";
+    for (auto arg : args) {
+      cout << mkindent(indent + 2) << "type:\n";
+      arg.first->print(indent + 3);
+      cout << mkindent(indent + 2) << "name:\n";
+      cout << mkindent(indent + 3) << arg.second << '\n';
+    }
     cout << mkindent(indent + 1) << "body:\n";
     for (auto stmt : body) {
       stmt->print(indent + 2);
@@ -248,6 +317,8 @@ struct If : Statement {
 
   std::vector<Statement *> else_;
 
+  bool accept(AnalysisVisitor *vis) override;
+
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "If:\n";
     std::cout << mkindent(indent + 1) << "condition:\n";
@@ -279,7 +350,9 @@ struct If : Statement {
 struct ExprStatement : Statement {
   Expr *expr;
 
-  void print(int indent = 0) {
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "ExprStatement:\n";
     cout << mkindent(indent + 1) << "expr:\n";
     expr->print(indent + 2);
@@ -290,7 +363,9 @@ struct While : Statement {
   Expr *cond;
   std::vector<Statement *> body;
 
-  void print(int indent = 0) {
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "While:\n";
     cout << mkindent(indent + 1) << "cond:\n";
     cond->print(indent + 2);
@@ -304,7 +379,9 @@ struct While : Statement {
 struct Return : Statement {
   Expr *expr;
 
-  void print(int indent = 0) {
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "Return:\n";
     cout << mkindent(indent + 1) << "expr:\n";
     expr->print(indent + 2);
@@ -316,7 +393,11 @@ struct ForNode : Statement {
   Expr *cond = nullptr;
   Statement *update = nullptr;
 
-  void print(int indent = 0) {
+  std::vector<Statement *> body;
+
+  bool accept(AnalysisVisitor *vis) override;
+
+  void print(int indent = 0) override {
     cout << mkindent(indent) << "ForNode:\n";
     cout << mkindent(indent + 1) << "init:\n";
     init->print(indent + 2);

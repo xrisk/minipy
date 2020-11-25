@@ -1,4 +1,6 @@
-int32 main() {
-    int32 x = 5;
+void bar(int32 spac) {
+    int32 ret = spac;
+    return ret;
 }
+
 

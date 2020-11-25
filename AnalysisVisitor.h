@@ -1,8 +1,9 @@
 #pragma once
 
-#include <map>
+#include <vector>
 
-struct Scope;
+#include "Scope.h"
+
 struct ASTNode;
 
 struct AnalysisVisitor;
@@ -14,11 +15,23 @@ struct AnalysisVisitable {
 
 struct AnalysisVisitor {
 
-  std::map<ASTNode *, Scope *> scopes;
-
-  Scope *getScope(ASTNode *node);
+  Scope *rootScope = nullptr;
 
   virtual ~AnalysisVisitor() {}
+
+  Scope *getScope() { return rootScope; }
+
+  Scope *pushScope() {
+    Scope *n = new Scope(rootScope);
+    rootScope = n;
+    return n;
+  }
+
+  void popScope() {
+    Scope *popped = rootScope;
+    rootScope = rootScope->parent;
+    delete popped;
+  }
 
   bool virtual visit(AnalysisVisitable *vis) { return vis->accept(this); }
 };

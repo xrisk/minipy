@@ -2,7 +2,7 @@ grammar MiniC;
 
 prog : function_decl+ EOF ;
 
-datatype_base : INT | FLOAT | VOID ;
+datatype_base : INT | FLOAT | VOID | BOOL;
 datatype : datatype_base  ('[' expr ']')? ( '[' expr ']' )? ;
 
 
@@ -60,8 +60,9 @@ while_stmt: 'while' expr block ;
 
 
 return_type : datatype;
+arg: datatype IDENT;
 
-function_decl: return_type IDENT '(' (datatype IDENT (',' datatype IDENT)*)? ')' block ;
+function_decl: return_type IDENT LPAREN (arg (',' arg)*)? RPAREN  block ;
 
 return_stmt: 'return' expr ;
 
@@ -83,6 +84,7 @@ stmt : simple_stmt EOL
 
 INT: 'int32';
 FLOAT: 'float';
+BOOL: 'bool';
 NOT: 'not';
 AND: 'and';
 OR: 'or';

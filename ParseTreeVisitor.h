@@ -64,9 +64,15 @@ public:
   Any visitFunction_decl(MiniCParser::Function_declContext *ctx) override {
 
     FnDecl *node = new FnDecl();
-    node->name = ctx->IDENT(0)->getText();
+    node->name = ctx->IDENT()->getText();
 
     node->returntype = ctx->return_type()->datatype()->accept(this);
+
+    for (auto arg : ctx->arg()) {
+      Type *t = arg->datatype()->accept(this);
+      Identifier i = arg->IDENT()->getText();
+      node->args.push_back(std::make_pair(t, i));
+    }
 
     for (auto stat : ctx->block()->stmt()) {
       node->body.push_back(stat->accept(this));
@@ -87,14 +93,16 @@ public:
   }
 
   Any visitDatatype(MiniCParser::DatatypeContext *ctx) override {
-    Type *node = new Type();
+    Type *node;
     std::string base = ctx->datatype_base()->getText();
     if (base == "int32")
-      node->base = BaseType::Int32;
+      node = new Type(Int32);
     else if (base == "int8")
-      node->base = BaseType::Int8;
+      node = new Type(BaseType::Int8);
     else if (base == "void")
-      node->base = BaseType::Void;
+      node = new Type(BaseType::Void);
+    else if (base == "bool")
+      node = new Type(BaseType::Bool);
     else
       assert(false && "unknown datatype");
     if (node->base == BaseType::Void && ctx->expr().size() > 0)
@@ -302,6 +310,10 @@ public:
 
     if (ctx->for_update()) {
       node->update = ctx->for_update()->simple_stmt()->accept(this);
+    }
+
+    for (auto stmt : ctx->block()->stmt()) {
+      node->body.push_back(stmt->accept(this));
     }
 
     return node;
