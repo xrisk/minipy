@@ -64,7 +64,7 @@ arg: datatype IDENT;
 
 function_decl: return_type IDENT LPAREN (arg (',' arg)*)? RPAREN  block ;
 
-return_stmt: 'return' expr ;
+return_stmt: 'return' expr? ;
 
 decl : datatype IDENT (ASSIGN expr)?  ;
 

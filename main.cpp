@@ -23,6 +23,7 @@
 
 #include "AST.h"
 #include "Analysis.h"
+#include "Codegen.h"
 #include "ParseTreeVisitor.h"
 
 using namespace antlr4;
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
   ParseTreeVisitor vis;
   AST *ast = vis.visitProg(ctx).as<AST *>();
 
-  ast->print();
+  /* ast->print(); */
 
   AnalysisVisitor phase2;
 
@@ -63,4 +64,10 @@ int main(int argc, char **argv) {
   } else {
     std::cout << "invalid";
   }
+
+  CodegenVisitor phase3;
+
+  ast->root->accept(&phase3);
+
+  phase3.TheModule->print(llvm::errs(), nullptr);
 }

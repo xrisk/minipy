@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "AnalysisVisitor.h"
+#include "CodegenVisitor.h"
 
 using std::cout;
 
@@ -18,11 +19,12 @@ inline std::string mkindent(int count) {
   return s;
 }
 
-struct ASTNode : AnalysisVisitable {
+struct ASTNode : AnalysisVisitable, CodegenVisitable {
   virtual void print(int indent = 0) { cout << "ASTNode" << '\n'; }
   virtual ~ASTNode() {}
 
   bool accept(AnalysisVisitor *vis) override { return true; }
+  void *accept(CodegenVisitor *vis) override { return nullptr; }
 };
 
 enum BaseType { Int8, Int32, Void, Bool, Char, Fn };
@@ -190,6 +192,8 @@ struct OperatorExpr : Expr {
       expr->print(indent + 2);
     }
   }
+
+  void *accept(CodegenVisitor *vis) override;
 };
 
 struct IdentifierExpr : Expr {
@@ -197,6 +201,7 @@ struct IdentifierExpr : Expr {
   std::vector<Expr *> idx;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   Type *getType(AnalysisVisitor *vis) override;
   void print(int indent = 0) override {
@@ -223,6 +228,8 @@ struct IntLiteral : LiteralExpr {
     std::cout << mkindent(indent) << "IntLiteral:\n";
     std::cout << mkindent(indent + 1) << value << '\n';
   }
+
+  void *accept(CodegenVisitor *vis) override;
 };
 
 struct BoolLiteral : LiteralExpr {
@@ -270,6 +277,7 @@ struct FnDecl : ASTNode {
   std::vector<Statement *> body;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     cout << mkindent(indent) << "FnDecl" << '\n';
@@ -296,6 +304,7 @@ struct Declaration : Statement {
   Expr *rval = nullptr;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "Declaration\n";
@@ -318,6 +327,7 @@ struct If : Statement {
   std::vector<Statement *> else_;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     std::cout << mkindent(indent) << "If:\n";
@@ -357,6 +367,8 @@ struct ExprStatement : Statement {
     cout << mkindent(indent + 1) << "expr:\n";
     expr->print(indent + 2);
   }
+
+  void *accept(CodegenVisitor *vis) override;
 };
 
 struct While : Statement {
@@ -380,6 +392,7 @@ struct Return : Statement {
   Expr *expr;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     cout << mkindent(indent) << "Return:\n";
@@ -396,6 +409,7 @@ struct ForNode : Statement {
   std::vector<Statement *> body;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     cout << mkindent(indent) << "ForNode:\n";
@@ -412,6 +426,7 @@ struct ProgNode : ASTNode {
   std::vector<FnDecl *> body;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
 
   void print(int indent = 0) override {
     cout << mkindent(indent);

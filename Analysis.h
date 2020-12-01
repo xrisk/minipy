@@ -43,6 +43,13 @@ bool FnDecl::accept(AnalysisVisitor *vis) {
   for (auto stmt : this->body) {
     if (!stmt->accept(vis))
       return false;
+    Return *r = dynamic_cast<Return *>(stmt);
+    if (r != nullptr) {
+      if (!(*this->returntype == *r->expr->getType(vis))) {
+        std::cerr << "return type invalid\n";
+        return false;
+      }
+    }
   }
 
   vis->popScope();
@@ -225,7 +232,7 @@ bool While::accept(AnalysisVisitor *vis) {
 }
 
 bool Return::accept(AnalysisVisitor *vis) {
-  if (!this->expr->accept(vis))
+  if (this->expr && !this->expr->accept(vis))
     return false;
   return true;
 }

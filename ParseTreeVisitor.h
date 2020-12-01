@@ -39,7 +39,10 @@ public:
     }
     if (ctx->return_stmt()) {
       Return *node = new Return();
-      node->expr = ctx->return_stmt()->expr()->accept(this);
+      if (ctx->return_stmt()->expr())
+        node->expr = ctx->return_stmt()->expr()->accept(this);
+      else
+        node->expr = nullptr;
       return (Statement *)node;
     }
     assert(false && "unreachable code - simpleStatement");
