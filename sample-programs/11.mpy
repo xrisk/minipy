@@ -1,0 +1,14 @@
+int32[52] histogram
+cond = True
+while cond:
+    inchar = readInt32()
+    if 65 <= inchar and inchar <= 90:
+        histogram[inchar - 90] = histogram[inchar - 90] + 1
+    if 97 <= inchar and inchar <= 122:
+        histogram[26 + inchar - 122] = histogram[26 + inchar - 122] + 1
+    if inchar == 256:
+        cond = False
+for(int32 i = 0; i < 52; i = i + 1):
+    print(i)
+    print(histogram[i])
+    print()

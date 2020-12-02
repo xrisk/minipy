@@ -47,6 +47,8 @@ int main(int argc, char **argv) {
 
   MiniCParser::ProgContext *ctx = parser.prog();
 
+  cout << ctx->toString() << '\n';
+
   auto err = parser.getNumberOfSyntaxErrors();
 
   if (err != 0)
@@ -55,7 +57,7 @@ int main(int argc, char **argv) {
   ParseTreeVisitor vis;
   AST *ast = vis.visitProg(ctx).as<AST *>();
 
-  /* ast->print(); */
+  ast->print();
 
   AnalysisVisitor phase2;
 

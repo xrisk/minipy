@@ -6,5 +6,4 @@ int32 main() {
     for (int32 x = 0; x < 5; x = x + 1) {
         printd(x);
     }
-    printd(3);
 }

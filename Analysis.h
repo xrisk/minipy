@@ -17,18 +17,17 @@ bool ProgNode::accept(AnalysisVisitor *vis) {
       return false;
     }
 
-    if (!fn->accept(vis)) {
-      return false;
-    }
-
     Type *newFn = new Type(BaseType::Fn);
     newFn->fnTypes.push_back(fn->returntype);
     for (auto arg : fn->args) {
       newFn->fnTypes.push_back(arg.first);
     }
 
-    std::cout << fn->name << '\n';
     sc->insert(fn->name, newFn);
+
+    if (!fn->accept(vis)) {
+      return false;
+    }
   }
   return true;
 }
@@ -63,16 +62,20 @@ bool Declaration::accept(AnalysisVisitor *vis) {
     std::cout << "variable already declared: " << *this->name << '\n';
     return false;
   }
-  if (!this->rval->accept(vis))
-    return false;
 
-  Type *rhs = this->rval->getType(vis);
-  assert(rhs != nullptr);
+  if (this->rval) {
 
-  if (*this->datatype != *rhs) {
-    std::cerr << "incompatible data type for declaration: " << *this->name
-              << '\n';
-    return false;
+    if (!this->rval->accept(vis))
+      return false;
+
+    Type *rhs = this->rval->getType(vis);
+    assert(rhs != nullptr);
+
+    if (*this->datatype != *rhs) {
+      std::cerr << "incompatible data type for declaration: " << *this->name
+                << '\n';
+      return false;
+    }
   }
 
   sc->insert(*this->name, this->datatype);
@@ -81,7 +84,10 @@ bool Declaration::accept(AnalysisVisitor *vis) {
 
 Type *IdentifierExpr::getType(AnalysisVisitor *vis) {
   Scope *sc = vis->getScope();
-  return sc->lookup(this->id);
+  auto T = sc->lookup(this->id);
+  if (this->idx.size() == T->dims.size())
+    return new Type(T->base);
+  return T;
 }
 
 Type *IntLiteral::getType(AnalysisVisitor *vis) {
@@ -142,6 +148,8 @@ bool OperatorExpr::accept(AnalysisVisitor *vis) {
       }
       if (!(*actual == *fn->fnTypes[i])) {
         std::cout << "invalid type passed to function call" << '\n';
+        actual->print();
+        fn->fnTypes[i]->print();
         return false;
       }
     }
@@ -172,7 +180,9 @@ bool OperatorExpr::accept(AnalysisVisitor *vis) {
     }
     Type *actual = this->args[i]->getType(vis);
     if (!(*expectedType == *actual)) {
-      std::cerr << "invalid type passed to operator" << '\n';
+      std::cerr << "invalid type passed to operator" << op << '\n';
+      expectedType->print();
+      actual->print();
       return false;
     }
   }

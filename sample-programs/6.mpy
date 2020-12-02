@@ -1,0 +1,25 @@
+void print() {} 
+
+void main() {
+    int32[8] arr;
+    arr[0] = 1;
+    arr[1] = 2;
+    arr[2] = 3;
+    arr[3] = 4;
+    arr[4] = 5;
+    arr[5] = 6;
+    arr[6] = 7;
+    arr[7] = 8;
+    int32 n = 8;
+    int32 j = 0;
+    int32 key = 0;
+    for (int32 i = 1; i < n; i = i + 1) {
+        key = arr[i];
+        j = i - 1;
+        while (j >= 0 and arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+}

@@ -1,0 +1,31 @@
+int32 readInt32() { return 5;}
+void printd(int32 n) { }
+void printA(int32[128] n) { }
+
+void swap(int32[128] arr, int32 i, int32 j) {
+    int32 tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = arr[i];
+}
+
+void permute(int32[128] arr, int32 l, int32 r) {
+    if (l == r) {
+        printd(arr[l]);
+        printA(arr);
+    } else { 
+        for (int32 i = l; i <= r; i = i + 1) {
+            int32 tmp = arr[l];
+            swap(arr, l, i);
+            permute(arr, l + 1, r);
+            swap(arr, l, i);
+        }
+    }
+}
+
+void main() {
+    int32 n = readInt32();
+    int32[128] arr;
+
+    permute(arr, 0, n - 1);
+}
+

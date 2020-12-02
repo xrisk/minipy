@@ -1,0 +1,24 @@
+int32 pow(int32 a, int32 b) {
+    int32 prod = 1;
+    for (int32 i = 1; i <= b; i = i + 1) {
+        prod = prod * a;
+    }
+    return prod;
+}
+
+int32 readInt32() { return 5; }
+void printd(int32 val) { }
+
+int32 func(int32 N, int32 k) {
+    int32 sum = 0;
+    for (int32 i = 1; i <= N; i = i + 1) {
+        sum = sum + i * pow(i, k);
+    }
+    return sum;
+}
+
+void main() {
+    int32 N = readInt32();
+    int32 k = readInt32();
+    printd(func(N, k));
+}

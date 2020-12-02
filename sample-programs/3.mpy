@@ -1,0 +1,29 @@
+int32 readInt32() { return 5; }
+void printd(int32 val) {}
+
+bool prime(int32 n) {
+    if (n <= 1) {
+        return False;
+    }
+    for (int32 i = 2; i * i <= n; i = i + 1) {
+        if (n % i == 0) {
+            return False;
+        }
+    }
+    return True;
+}
+
+int32 funct(int32 N) {
+    int32 sum = 0;
+    for (int32 i = 2; i < N; i = i + 1) {
+        if (prime(i)) {
+            sum = sum + 1;
+        }
+    }
+    return sum;
+}
+
+void main() {
+    int32 a = readInt32();
+    printd(funct(a));
+}

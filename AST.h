@@ -237,6 +237,8 @@ struct BoolLiteral : LiteralExpr {
   Type *getType(AnalysisVisitor *vis) override;
   bool value;
 
+  void *accept(CodegenVisitor *vis) override;
+
   void print(int indent = 0) override {
     cout << mkindent(indent) << "BoolLiteral:\n";
     cout << mkindent(indent + 1) << (value ? "True" : "false") << '\n';

@@ -17,25 +17,10 @@
 #define DLLEXPORT
 #endif
 
-extern "C" DLLEXPORT double printd(int X) {
-  fprintf(stderr, "%d\n", X);
-  return 0;
-}
-
-void *ProgNode::accept(CodegenVisitor *vis) {
-
-  for (auto fn : this->body) {
-    fn->accept(vis);
-  }
-
-  return nullptr;
-}
-
 llvm::AllocaInst *
 CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function,
                                            std::string *v, Type *t) {
   std::string varName = *v;
-  // Builder for current context
   llvm::IRBuilder<> temp(&function->getEntryBlock(),
                          function->getEntryBlock().begin());
   llvm::AllocaInst *allocate_instruction = nullptr;
@@ -49,45 +34,29 @@ CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function,
   return allocate_instruction;
 }
 
-llvm::Value *visitBlock(std::vector<Statement *> block, CodegenVisitor *vis) {
+void *ProgNode::accept(CodegenVisitor *vis) {
+  for (auto fn : this->body) {
+    fn->accept(vis);
+  }
+  return nullptr;
+}
 
-  /* llvm::Value *v = nullptr; */
-  /* for (Variable *var : *(block.variables)) { */
-  /*   v = var->accept(*this); */
-  /*   if (!v) { */
-  /*     std::cerr << "Codegen exiting block due to " */
-  /*               << "invalid variable declaration\n"; */
-  /*     return nullptr; */
-  /*   } */
-  /* } */
+llvm::Value *visitBlock(std::vector<Statement *> block, CodegenVisitor *vis) {
 
   llvm::Value *val;
 
   for (Statement *stmt : block) {
-    /* v = stmt->accept(this); */
-    /* if (!v) { */
-    /*   std::cerr << "Codegen exiting block due to " */
-    /*             << "invalid statement declaration\n"; */
-    /*   return nullptr; */
-    /* } */
-
     val = (llvm::Value *)stmt->accept(vis);
 
     if (dynamic_cast<Return *>(stmt) != nullptr) {
-      std::cout << "cast success\n";
       return val;
     }
   }
 
-  // std::cout << "Codegen out of block\n";
-  /* return v; */
   return nullptr;
 }
 
 void *FnDecl::accept(CodegenVisitor *vis) {
-
-  std::cout << "visiting function decl\n";
-  // Get llvm type of each argument
   std::vector<llvm::Type *> argument_types;
   for (auto arg : this->args) {
     if (arg.first->base == Int32) {
@@ -100,7 +69,6 @@ void *FnDecl::accept(CodegenVisitor *vis) {
     }
   }
 
-  // Get return type of function
   llvm::Type *returnType;
   if (this->returntype->base == Int32) {
     returnType = llvm::Type::getInt32Ty(*vis->Context);
@@ -113,13 +81,11 @@ void *FnDecl::accept(CodegenVisitor *vis) {
     return nullptr;
   }
 
-  // Create the llvm function
   llvm::FunctionType *FT =
       llvm::FunctionType::get(returnType, argument_types, false);
   llvm::Function *F = llvm::Function::Create(
       FT, llvm::Function::ExternalLinkage, this->name, *vis->TheModule);
 
-  // Set names for arguments
   auto arg_it = this->args.begin();
   auto llvm_arg_it = F->arg_begin();
   while (arg_it != this->args.end() and llvm_arg_it != F->arg_end()) {
@@ -129,14 +95,11 @@ void *FnDecl::accept(CodegenVisitor *vis) {
     llvm_arg_it++;
   }
 
-  // Create block for function
   llvm::BasicBlock *BB = llvm::BasicBlock::Create(*vis->Context, "entry", F);
   vis->Builder->SetInsertPoint(BB);
 
-  // Save old scope
   auto oldNamedValues = vis->NamedValues;
 
-  // Allocate stack memory
   arg_it = this->args.begin();
   llvm_arg_it = F->arg_begin();
   while (arg_it != this->args.end() and llvm_arg_it != F->arg_end()) {
@@ -149,29 +112,11 @@ void *FnDecl::accept(CodegenVisitor *vis) {
     llvm_arg_it++;
   }
 
-  // Generate code for body with current named values
-  /* llvm::Value *retval = method.block->accept(*this); */
-
   llvm::Value *retVal = visitBlock(this->body, vis);
 
-  // Reset old named values
   vis->Builder->CreateRet(retVal);
 
-  // Match and store return type
-  /* if (!retval) { */
-  /*   std::cerr << "Codegen exiting method declaration due to invalid
-   * return"
-   */
-  /*             << " type from function block\n"; */
-  /*   F->eraseFromParent(); */
-  /*   return nullptr; */
-  /* } */
-
-  // if(method.return_type == Type::VOID) Builder->CreateRetVoid();
-  // else Builder->CreateRet(retval);
-
   llvm::verifyFunction(*F);
-  // std::cout << "Codegen out of method declaration\n";
   return F;
 }
 
@@ -250,7 +195,6 @@ void *OperatorExpr::accept(CodegenVisitor *vis) {
 }
 
 void *ExprStatement::accept(CodegenVisitor *vis) {
-  std::cout << "here\n";
   return vis->visit(this->expr);
 }
 
@@ -290,8 +234,6 @@ void *Declaration::accept(CodegenVisitor *vis) {
 }
 
 void *If::accept(CodegenVisitor *vis) {
-  // std::cout << "Codegen visiting if statement\n";
-  //
   auto oldNamedValues = vis->NamedValues;
 
   llvm::Value *condition = (llvm::Value *)this->condition->accept(vis);
@@ -351,8 +293,6 @@ void *If::accept(CodegenVisitor *vis) {
   }
   llvm::Value *v = llvm::ConstantInt::get(*vis->Context, llvm::APInt(32, 0));
 
-  // std::cout << "Codegen exiting If Statement\n";
-  //
   vis->NamedValues = oldNamedValues;
 
   return v;
@@ -367,6 +307,8 @@ void *ForNode::accept(CodegenVisitor *vis) {
 
   llvm::BasicBlock *AfterBB =
       llvm::BasicBlock::Create(*vis->Context, "after", F);
+
+  vis->Builder->CreateBr(PreBB);
 
   vis->Builder->SetInsertPoint(PreBB);
   this->init->accept(vis);
@@ -390,4 +332,11 @@ void *ForNode::accept(CodegenVisitor *vis) {
   vis->Builder->SetInsertPoint(AfterBB);
 
   return nullptr;
+}
+
+void *BoolLiteral::accept(CodegenVisitor *vis) {
+
+  llvm::Value *v =
+      llvm::ConstantInt::get(*vis->Context, llvm::APInt(1, this->value, true));
+  return v;
 }

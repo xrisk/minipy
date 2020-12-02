@@ -1,0 +1,20 @@
+bool prime(int32 n) {
+    if (n <= 1) {
+        return False;
+    }
+    for (int32 i = 2; i * i <= n; i = i + 1) {
+        if (n % i == 0) {
+            return False;
+        }
+    }
+    return True;
+}
+
+int32 GetInt32() { return 5; }
+void printd(int32 val) {}
+void printb(bool val) {}
+
+void main() {
+    int32 n = GetInt32();
+    printb(prime(n));
+}

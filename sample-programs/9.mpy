@@ -1,0 +1,24 @@
+d1 = readInt32()
+d2 = readInt32()
+int32 i
+int32 j 
+int32[d1][d2] a
+int32[d1][d2] b
+int32[d1][d2] c
+
+for (i = 0; i < d1; i = i + 1):
+    for (j = 0; j < d2; j = j + 1):
+        a[i][j] = readInt32()
+
+for (i = 0; i < d1; i = i + 1):
+    for (j = 0; j < d2; j = j + 1):
+        b[i][j] = readInt32()
+
+for (i = 0; i < d1; i = i + 1):
+    for (j = 0; j < d2; j = j + 1):
+        c[i][j] = a[i][j] + b[i][j]
+
+for (i = 0; i < d1; i = i + 1):
+    for (j = 0; j < d2; j = j + 1):
+        print(c[i][j])
+    print()
