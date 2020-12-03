@@ -39,99 +39,71 @@ after:                                            ; preds = %loop, %pre
   ret i32 %prod13
 }
 
-define void @printd(i32 %n) {
+define i32 @readInt32() {
 entry:
-  %n1 = alloca i32, align 4
-  store i32 %n, i32* %n1, align 4
-  ret void
+  ret i32 5
 }
 
-define i32 @sqrt(i32 %val) {
+define void @printd(i32 %val) {
 entry:
   %val1 = alloca i32, align 4
   store i32 %val, i32* %val1, align 4
-  ret i32 5
+  ret void
+}
+
+define i32 @func(i32 %N, i32 %k) {
+entry:
+  %k2 = alloca i32, align 4
+  %N1 = alloca i32, align 4
+  store i32 %N, i32* %N1, align 4
+  store i32 %k, i32* %k2, align 4
+  %sum = alloca i32, align 4
+  store i32 0, i32* %sum, align 4
+  br label %pre
+
+pre:                                              ; preds = %entry
+  %i = alloca i32, align 4
+  store i32 1, i32* %i, align 4
+  %i3 = load i32, i32* %i, align 4
+  %N4 = load i32, i32* %N1, align 4
+  %lecmptmp = icmp sle i32 %i3, %N4
+  br i1 %lecmptmp, label %loop, label %after
+
+loop:                                             ; preds = %loop, %pre
+  %sum5 = load i32, i32* %sum, align 4
+  %sum6 = load i32, i32* %sum, align 4
+  %i7 = load i32, i32* %i, align 4
+  %i8 = load i32, i32* %i, align 4
+  %k9 = load i32, i32* %k2, align 4
+  %calltmp = call i32 @pow(i32 %i8, i32 %k9)
+  %multmp = mul i32 %i7, %calltmp
+  %addtmp = add i32 %sum6, %multmp
+  store i32 %addtmp, i32* %sum, align 4
+  %i10 = load i32, i32* %i, align 4
+  %i11 = load i32, i32* %i, align 4
+  %addtmp12 = add i32 %i11, 1
+  store i32 %addtmp12, i32* %i, align 4
+  %i13 = load i32, i32* %i, align 4
+  %N14 = load i32, i32* %N1, align 4
+  %lecmptmp15 = icmp sle i32 %i13, %N14
+  br i1 %lecmptmp15, label %loop, label %after
+
+after:                                            ; preds = %loop, %pre
+  %sum16 = load i32, i32* %sum, align 4
+  ret i32 %sum16
 }
 
 define void @main() {
 entry:
-  %count = alloca i32, align 4
-  store i32 0, i32* %count, align 4
-  br label %pre
-
-pre:                                              ; preds = %entry
-  %z = alloca i32, align 4
-  store i32 0, i32* %z, align 4
-  %z1 = load i32, i32* %z, align 4
-  %calltmp = call i32 @pow(i32 10, i32 9)
-  %lecmptmp = icmp sle i32 %z1, %calltmp
-  br i1 %lecmptmp, label %loop, label %after
-
-loop:                                             ; preds = %after4, %pre
-  br label %pre2
-
-after:                                            ; preds = %after4, %pre
-  %count39 = load i32, i32* %count, align 4
-  call void @printd(i32 %count39)
+  %N = alloca i32, align 4
+  %calltmp = call i32 @readInt32()
+  store i32 %calltmp, i32* %N, align 4
+  %k = alloca i32, align 4
+  %calltmp1 = call i32 @readInt32()
+  store i32 %calltmp1, i32* %k, align 4
+  %N2 = load i32, i32* %N, align 4
+  %k3 = load i32, i32* %k, align 4
+  %calltmp4 = call i32 @func(i32 %N2, i32 %k3)
+  call void @printd(i32 %calltmp4)
   ret void
-
-pre2:                                             ; preds = %loop
-  %x = alloca i32, align 4
-  store i32 0, i32* %x, align 4
-  %x5 = load i32, i32* %x, align 4
-  %x6 = load i32, i32* %x, align 4
-  %multmp = mul i32 %x5, %x6
-  %z7 = load i32, i32* %z, align 4
-  %z8 = load i32, i32* %z, align 4
-  %multmp9 = mul i32 %z7, %z8
-  %lecmptmp10 = icmp sle i32 %multmp, %multmp9
-  br i1 %lecmptmp10, label %loop3, label %after4
-
-loop3:                                            ; preds = %next, %pre2
-  %y2 = alloca i32, align 4
-  %z11 = load i32, i32* %z, align 4
-  %z12 = load i32, i32* %z, align 4
-  %multmp13 = mul i32 %z11, %z12
-  %x14 = load i32, i32* %x, align 4
-  %x15 = load i32, i32* %x, align 4
-  %multmp16 = mul i32 %x14, %x15
-  %subtmp = sub i32 %multmp13, %multmp16
-  store i32 %subtmp, i32* %y2, align 4
-  %y217 = load i32, i32* %y2, align 4
-  %calltmp18 = call i32 @sqrt(i32 %y217)
-  %calltmp19 = call i32 @pow(i32 %calltmp18, i32 2)
-  %y220 = load i32, i32* %y2, align 4
-  %equalcmptmp = icmp eq i32 %calltmp19, %y220
-  br i1 %equalcmptmp, label %if, label %next
-
-after4:                                           ; preds = %next, %pre2
-  %z33 = load i32, i32* %z, align 4
-  %z34 = load i32, i32* %z, align 4
-  %addtmp35 = add i32 %z34, 1
-  store i32 %addtmp35, i32* %z, align 4
-  %z36 = load i32, i32* %z, align 4
-  %calltmp37 = call i32 @pow(i32 10, i32 9)
-  %lecmptmp38 = icmp sle i32 %z36, %calltmp37
-  br i1 %lecmptmp38, label %loop, label %after
-
-if:                                               ; preds = %loop3
-  %count21 = load i32, i32* %count, align 4
-  %count22 = load i32, i32* %count, align 4
-  %addtmp = add i32 %count22, 1
-  store i32 %addtmp, i32* %count, align 4
-  br label %next
-
-next:                                             ; preds = %if, %loop3
-  %x23 = load i32, i32* %x, align 4
-  %x24 = load i32, i32* %x, align 4
-  %addtmp25 = add i32 %x24, 1
-  store i32 %addtmp25, i32* %x, align 4
-  %x26 = load i32, i32* %x, align 4
-  %x27 = load i32, i32* %x, align 4
-  %multmp28 = mul i32 %x26, %x27
-  %z29 = load i32, i32* %z, align 4
-  %z30 = load i32, i32* %z, align 4
-  %multmp31 = mul i32 %z29, %z30
-  %lecmptmp32 = icmp sle i32 %multmp28, %multmp31
-  br i1 %lecmptmp32, label %loop3, label %after4
 }
