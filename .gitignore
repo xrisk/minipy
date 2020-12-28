@@ -2,3 +2,4 @@ generated/
 build/
 .clangd/
 minipy
+.cache/
