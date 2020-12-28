@@ -21,7 +21,7 @@ l5 = cc.find_library('LLVMSupport', dirs: [llvm_libdir])
 l6 = cc.find_library('LLVMDemangle', dirs: [llvm_libdir])
 lcurses = cc.find_library('curses')
 
-sources = ['main.cpp', 'AST.h', 'ParseTreeVisitor.h']
+sources = ['main.cc', 'Codegen.cc', 'Scope.cc', 'AnalysisVisitor.cc', 'AnalysisVisitable.cc', 'Analysis.cc', 'AST.cc']
 
 executable('minipy', sources, generated_source, dependencies : [antlr_lib, l1, l2, l3, l4, l5, l6, lcurses], include_directories: [llvm_inc, antlr_inc, generated_inc])
 

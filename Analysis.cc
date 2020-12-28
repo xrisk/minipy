@@ -1,10 +1,11 @@
-#pragma once
-
+#include <iostream>
 #include <map>
 
 #include "AST.h"
 #include "AnalysisVisitor.h"
 #include "Scope.h"
+
+using namespace minipy;
 
 typedef std::map<Identifier, Type *> SymTable;
 
@@ -58,8 +59,8 @@ bool FnDecl::accept(AnalysisVisitor *vis) {
 bool Declaration::accept(AnalysisVisitor *vis) {
   Scope *sc = vis->getScope();
 
-  if (sc->lookup(*this->name, false)) {
-    std::cout << "variable already declared: " << *this->name << '\n';
+  if (sc->lookup(this->name, false)) {
+    std::cout << "variable already declared: " << this->name << '\n';
     return false;
   }
 
@@ -72,13 +73,13 @@ bool Declaration::accept(AnalysisVisitor *vis) {
     assert(rhs != nullptr);
 
     if (*this->datatype != *rhs) {
-      std::cerr << "incompatible data type for declaration: " << *this->name
+      std::cerr << "incompatible data type for declaration: " << this->name
                 << '\n';
       return false;
     }
   }
 
-  sc->insert(*this->name, this->datatype);
+  sc->insert(this->name, this->datatype);
   return true;
 }
 

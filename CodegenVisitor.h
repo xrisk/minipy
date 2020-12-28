@@ -6,8 +6,10 @@
 
 #include "Scope.h"
 
-struct ASTNode;
+namespace minipy {
 
+struct ASTNode;
+struct Type;
 struct CodegenVisitor;
 
 struct CodegenVisitable {
@@ -36,3 +38,4 @@ struct CodegenVisitor {
   llvm::AllocaInst *CreateEntryBlockAllocation(llvm::Function *function,
                                                std::string *v, Type *t);
 };
+}; // namespace minipy

@@ -3,8 +3,13 @@
 #include <map>
 #include <string>
 
-typedef std::string Identifier;
+#include "AST.h"
+
+namespace minipy {
+
 struct Type;
+
+typedef std::string Identifier;
 
 typedef std::map<Identifier, Type *> SymTable;
 
@@ -12,18 +17,10 @@ struct Scope {
   SymTable table;
   Scope *parent;
 
-  Scope() : parent(nullptr) {}
+  Scope();
+  Scope(Scope *parent);
 
-  Scope(Scope *parent) : parent(parent) {}
-
-  void insert(Identifier key, Type *t) { table[key] = t; }
-
-  Type *lookup(Identifier key, bool recurse = true) {
-    if (table.find(key) != table.end())
-      return table[key];
-    if (parent && recurse)
-      return parent->lookup(key);
-    else
-      return nullptr;
-  }
+  void insert(Identifier key, Type *t);
+  Type *lookup(Identifier key, bool recurse = true);
 };
+}; // namespace minipy

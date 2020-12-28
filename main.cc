@@ -22,11 +22,12 @@
 #include "tree/ParseTree.h"
 
 #include "AST.h"
-#include "Analysis.h"
-#include "Codegen.h"
+#include "AnalysisVisitor.h"
+#include "CodegenVisitor.h"
 #include "ParseTreeVisitor.h"
 
 using namespace antlr4;
+using namespace minipy;
 
 int main(int argc, char **argv) {
 

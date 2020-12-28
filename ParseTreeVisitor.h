@@ -7,6 +7,8 @@
 #include "generated/MiniCBaseVisitor.h"
 #include <iostream>
 
+namespace minipy {
+
 using antlrcpp::Any;
 
 class ParseTreeVisitor : public MiniCBaseVisitor {
@@ -85,7 +87,7 @@ public:
 
   Any visitDecl(MiniCParser::DeclContext *ctx) override {
     Declaration *node = new Declaration();
-    node->name = new std::string(ctx->IDENT()->getText());
+    node->name = std::string(ctx->IDENT()->getText());
 
     node->datatype = ctx->datatype()->accept(this);
 
@@ -322,3 +324,4 @@ public:
     return node;
   }
 };
+}; // namespace minipy

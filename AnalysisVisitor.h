@@ -1,37 +1,18 @@
 #pragma once
 
-#include <vector>
-
+#include "AnalysisVisitable.h"
 #include "Scope.h"
 
-struct ASTNode;
-
-struct AnalysisVisitor;
-
-struct AnalysisVisitable {
-  virtual bool accept(AnalysisVisitor *vis) { return true; }
-  virtual ~AnalysisVisitable() {}
-};
-
+namespace minipy {
+struct AnalysisVisitable;
+struct Scope;
 struct AnalysisVisitor {
-
   Scope *rootScope = nullptr;
+  virtual ~AnalysisVisitor();
 
-  virtual ~AnalysisVisitor() {}
-
-  Scope *getScope() { return rootScope; }
-
-  Scope *pushScope() {
-    Scope *n = new Scope(rootScope);
-    rootScope = n;
-    return n;
-  }
-
-  void popScope() {
-    Scope *popped = rootScope;
-    rootScope = rootScope->parent;
-    delete popped;
-  }
-
-  bool virtual visit(AnalysisVisitable *vis) { return vis->accept(this); }
+  Scope *getScope();
+  Scope *pushScope();
+  void popScope();
+  bool virtual visit(minipy::AnalysisVisitable *vis);
 };
+} // namespace minipy

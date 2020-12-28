@@ -1,5 +1,3 @@
-#pragma once
-
 #include "AST.h"
 #include "CodegenVisitor.h"
 
@@ -17,9 +15,11 @@
 #define DLLEXPORT
 #endif
 
+using namespace minipy;
+
 llvm::AllocaInst *
 CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function,
-                                           std::string *v, Type *t) {
+                                           std::string *v, minipy::Type *t) {
   std::string varName = *v;
   llvm::IRBuilder<> temp(&function->getEntryBlock(),
                          function->getEntryBlock().begin());
@@ -150,7 +150,12 @@ void *OperatorExpr::accept(CodegenVisitor *vis) {
   }
 
   if (arity == 2) {
-    llvm::Value *left = (llvm::Value *)vis->visit(this->args[0]);
+    llvm::Value *left;
+    if (this->op == ASSIGN) {
+      left = vis->NamedValues[((IdentifierExpr *)this->args[0])->id];
+    } else {
+      left = (llvm::Value *)vis->visit(this->args[0]);
+    }
     llvm::Value *right = (llvm::Value *)vis->visit(this->args[1]);
 
     switch (this->op) {
@@ -214,7 +219,7 @@ void *Return::accept(CodegenVisitor *vis) {
 }
 
 void *Declaration::accept(CodegenVisitor *vis) {
-  std::string name = *this->name;
+  std::string name = this->name;
 
   if (*this->datatype == Int32) {
     vis->NamedValues[name] = vis->Builder->CreateAlloca(
