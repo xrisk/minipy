@@ -1,6 +1,7 @@
 grammar MiniC;
 
-prog : function_decl+ EOF ;
+prog_top_level: external_decl | function_decl ;
+prog : prog_top_level+ EOF ;
 
 datatype_base : INT | FLOAT | VOID | BOOL;
 datatype : datatype_base  ('[' expr ']')? ( '[' expr ']' )? ;
@@ -63,6 +64,7 @@ return_type : datatype;
 arg: datatype IDENT;
 
 function_decl: return_type IDENT LPAREN (arg (',' arg)*)? RPAREN  block ;
+external_decl: EXTERN return_type IDENT LPAREN (arg (',' arg)*)? RPAREN EOL;
 
 return_stmt: 'return' expr? ;
 
@@ -82,6 +84,7 @@ stmt : simple_stmt EOL
 
 /*Tokens*/
 
+EXTERN: 'extern';
 INT: 'int32';
 FLOAT: 'float';
 BOOL: 'bool';

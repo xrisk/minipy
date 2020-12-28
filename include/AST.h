@@ -114,7 +114,9 @@ struct CharLiteral : LiteralExpr {
 
 struct Statement : ASTNode {};
 
-struct FnDecl : ASTNode {
+struct TopStatement : ASTNode {};
+
+struct FnDecl : TopStatement {
   Identifier name;
   Type *returntype;
 
@@ -187,8 +189,16 @@ struct ForNode : Statement {
   void print(int indent = 0) override;
 };
 
+struct Extern : TopStatement {
+  Identifier name;
+  Type *returnType;
+
+  std::vector<std::pair<Type *, Identifier>> args;
+  void *accept(CodegenVisitor *vis) override;
+};
+
 struct ProgNode : ASTNode {
-  std::vector<FnDecl *> body;
+  std::vector<TopStatement *> body;
 
   bool accept(AnalysisVisitor *vis) override;
   void *accept(CodegenVisitor *vis) override;
@@ -199,4 +209,5 @@ struct AST {
   ASTNode *root;
   void print(int indent = 0);
 };
+
 } // namespace minipy

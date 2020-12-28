@@ -20,13 +20,15 @@ public:
 
   Any visitProg(MiniCParser::ProgContext *ctx) override {
     ProgNode *p = new ProgNode();
-
-    for (auto func : ctx->function_decl()) {
-      p->body.push_back(func->accept(this));
+    for (auto func : ctx->prog_top_level()) {
+      if (func->external_decl())
+        p->body.push_back(func->external_decl()->accept(this));
+      else if (func->function_decl())
+        p->body.push_back(func->function_decl()->accept(this));
+      else
+        assert(false && "unreachable code");
     }
-
     ast->root = p;
-
     return ast;
   }
 
@@ -82,7 +84,7 @@ public:
     for (auto stat : ctx->block()->stmt()) {
       node->body.push_back(stat->accept(this));
     }
-    return node;
+    return (TopStatement *)node;
   }
 
   Any visitDecl(MiniCParser::DeclContext *ctx) override {
@@ -322,6 +324,19 @@ public:
     }
 
     return node;
+  }
+
+  Any visitExternal_decl(MiniCParser::External_declContext *ctx) override {
+
+    Extern *node = new Extern();
+    node->name = ctx->IDENT()->getText();
+    node->returnType = ctx->return_type()->datatype()->accept(this);
+    for (auto arg : ctx->arg()) {
+      Type *t = arg->datatype()->accept(this);
+      Identifier i = arg->IDENT()->getText();
+      node->args.push_back(std::make_pair(t, i));
+    }
+    return (TopStatement *)node;
   }
 };
 }; // namespace minipy

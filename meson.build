@@ -4,6 +4,7 @@ project('minipy', 'cpp',
 antlr_inc = include_directories('/usr/local/include/antlr4-runtime')
 antlr_lib = meson.get_compiler('cpp').find_library('antlr4-runtime')
 
+
 generated_inc = include_directories('./generated')
 generated_source = ['generated/MiniCLexer.cpp', 'generated/MiniCParser.cpp']
 

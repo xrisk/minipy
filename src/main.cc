@@ -60,15 +60,12 @@ int main(int argc, char **argv) {
 
   AnalysisVisitor phase2;
 
-  if (ast->root->accept(&phase2)) {
-    std::cout << "semantically valid\n";
-  } else {
-    std::cout << "invalid";
+  if (!ast->root->accept(&phase2)) {
+    std::cout << "Semantically invalid!";
+    return 0;
   }
 
   CodegenVisitor phase3;
-
   ast->root->accept(&phase3);
-
   phase3.TheModule->print(llvm::errs(), nullptr);
 }

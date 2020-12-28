@@ -1,6 +1,7 @@
 #include "AST.h"
 #include "CodegenVisitor.h"
 
+#include <iostream>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -54,6 +55,48 @@ llvm::Value *visitBlock(std::vector<Statement *> block, CodegenVisitor *vis) {
   }
 
   return nullptr;
+}
+
+void *Extern::accept(CodegenVisitor *vis) {
+  std::vector<llvm::Type *> argument_types;
+  for (auto arg : this->args) {
+    if (arg.first->base == Int32) {
+      argument_types.push_back(llvm::Type::getInt32Ty(*vis->Context));
+    } else if (arg.first->base == Bool) {
+      argument_types.push_back(llvm::Type::getInt1Ty(*vis->Context));
+    } else {
+      assert(false && "unreachable code");
+      return nullptr;
+    }
+  }
+
+  llvm::Type *returnType;
+  if (this->returnType->base == Int32) {
+    returnType = llvm::Type::getInt32Ty(*vis->Context);
+  } else if (this->returnType->base == Bool) {
+    returnType = llvm::Type::getInt1Ty(*vis->Context);
+  } else if (this->returnType->base == Void) {
+    returnType = llvm::Type::getVoidTy(*vis->Context);
+  } else {
+    assert(false && "unreachable code");
+    return nullptr;
+  }
+
+  llvm::FunctionType *FT =
+      llvm::FunctionType::get(returnType, argument_types, false);
+  llvm::Function *F = llvm::Function::Create(
+      FT, llvm::Function::ExternalLinkage, this->name, *vis->TheModule);
+
+  auto arg_it = this->args.begin();
+  auto llvm_arg_it = F->arg_begin();
+  while (arg_it != this->args.end() and llvm_arg_it != F->arg_end()) {
+    auto arg = *arg_it;
+    llvm_arg_it->setName(arg.second);
+    arg_it++;
+    llvm_arg_it++;
+  }
+
+  return F;
 }
 
 void *FnDecl::accept(CodegenVisitor *vis) {

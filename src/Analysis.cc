@@ -12,22 +12,42 @@ typedef std::map<Identifier, Type *> SymTable;
 bool ProgNode::accept(AnalysisVisitor *vis) {
   Scope *sc = vis->pushScope();
 
-  for (auto fn : this->body) {
-    if (sc->lookup(fn->name) != nullptr) {
-      std::cout << "function redefinition: " << fn->name << "\n";
-      return false;
-    }
+  for (auto top_level : this->body) {
+    if (auto fn = dynamic_cast<FnDecl *>(top_level)) {
+      if (sc->lookup(fn->name) != nullptr) {
+        std::cout << "function redefinition: " << fn->name << "\n";
+        return false;
+      }
 
-    Type *newFn = new Type(BaseType::Fn);
-    newFn->fnTypes.push_back(fn->returntype);
-    for (auto arg : fn->args) {
-      newFn->fnTypes.push_back(arg.first);
-    }
+      Type *newFn = new Type(BaseType::Fn);
+      newFn->fnTypes.push_back(fn->returntype);
+      for (auto arg : fn->args) {
+        newFn->fnTypes.push_back(arg.first);
+      }
 
-    sc->insert(fn->name, newFn);
+      sc->insert(fn->name, newFn);
 
-    if (!fn->accept(vis)) {
-      return false;
+      if (!fn->accept(vis)) {
+        return false;
+      }
+    } else if (auto fn = dynamic_cast<Extern *>(top_level)) {
+
+      if (sc->lookup(fn->name) != nullptr) {
+        std::cout << "function redefinition: " << fn->name << "\n";
+        return false;
+      }
+
+      Type *newFn = new Type(BaseType::Fn);
+      newFn->fnTypes.push_back(fn->returnType);
+      for (auto arg : fn->args) {
+        newFn->fnTypes.push_back(arg.first);
+      }
+
+      sc->insert(fn->name, newFn);
+
+      if (!vis->visit(fn)) {
+        return false;
+      }
     }
   }
   return true;
