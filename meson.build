@@ -21,7 +21,8 @@ l5 = cc.find_library('LLVMSupport', dirs: [llvm_libdir])
 l6 = cc.find_library('LLVMDemangle', dirs: [llvm_libdir])
 lcurses = cc.find_library('curses')
 
-sources = ['main.cc', 'Codegen.cc', 'Scope.cc', 'AnalysisVisitor.cc', 'AnalysisVisitable.cc', 'Analysis.cc', 'AST.cc']
+our_headers = include_directories('./include')
+sources = ['src/main.cc', 'src/Codegen.cc', 'src/Scope.cc', 'src/AnalysisVisitor.cc', 'src/AnalysisVisitable.cc', 'src/Analysis.cc', 'src/AST.cc']
 
-executable('minipy', sources, generated_source, dependencies : [antlr_lib, l1, l2, l3, l4, l5, l6, lcurses], include_directories: [llvm_inc, antlr_inc, generated_inc])
+executable('minipy', sources, generated_source, dependencies : [antlr_lib, l1, l2, l3, l4, l5, l6, lcurses], include_directories: [llvm_inc, antlr_inc, generated_inc, our_headers])
 
