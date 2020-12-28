@@ -1,0 +1,30 @@
+Yet Another Compiler
+====================
+
+Build requirements: antlr4, meson, ninja, llvm
+
+Build instructions
+------------------
+
+Adjust paths in Makefile, meson.build and compile.sh as needed.
+
+1. make (everytime you change the grammar)
+2. meson build (one-time)
+3. ninja -C build
+
+To use: `compile.sh <prog.mpy>`
+
+Why is this called minipy?
+--------------------------
+
+I originally envisioned a Python-like syntax but Antlr got the better of me.
+
+Credits
+-------
+
+Substantial material from https://llvm.org/docs/tutorial/index.html
+
+What doesn't work
+-----------------
+
+Nonscalars
