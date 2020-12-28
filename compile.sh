@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 PATH=/usr/local/opt/llvm/bin:$PATH
 ./minipy "$1" 2> out
 llc -O2 out -o out.s --x86-asm-syntax=intel

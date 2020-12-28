@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
   if (!ast->root->accept(&phase2)) {
     std::cout << "Semantically invalid!";
-    return 0;
+    return 1;
   }
 
   CodegenVisitor phase3;

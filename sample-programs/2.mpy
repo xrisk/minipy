@@ -10,11 +10,11 @@ bool prime(int32 n) {
     return True;
 }
 
-int32 GetInt32() { return 5; }
-void printd(int32 val) {}
-void printb(bool val) {}
+extern int32 readInt32();
+extern void printd(int32 val);
+extern void printb(bool val);
 
 void main() {
-    int32 n = GetInt32();
+    int32 n = readInt32();
     printb(prime(n));
 }

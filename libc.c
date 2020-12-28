@@ -1,15 +1,16 @@
 #include <stdio.h>
 
-void printd(int x) {
-				printf("%d\n", x);
-}
+void printd(int x) { printf("%d\n", x); }
 
 int readInt32() {
-	int x; scanf("%d", &x);
-	return x;
+  int x;
+  scanf("%d", &x);
+  return x;
 }
 
 void printb(int x) {
-	if (x == 0) printf("False\n");
-	else				printf("True\n");
+  if (x == 0)
+    printf("False\n");
+  else
+    printf("True\n");
 }
