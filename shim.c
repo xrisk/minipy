@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 void printd(int x) { printf("%d\n", x); }
 
@@ -14,3 +15,4 @@ void printb(int x) {
   else
     printf("True\n");
 }
+

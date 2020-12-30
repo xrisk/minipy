@@ -23,11 +23,12 @@ struct CodegenVisitor {
   std::unique_ptr<llvm::Module> TheModule;
   std::unique_ptr<llvm::IRBuilder<>> Builder;
   std::map<std::string, llvm::AllocaInst *> NamedValues;
+  std::map<std::string, llvm::Value *> ArraySz;
 
   CodegenVisitor() {
 
     Context = std::make_unique<llvm::LLVMContext>();
-    TheModule = std::make_unique<llvm::Module>("my cool jit", *Context);
+    TheModule = std::make_unique<llvm::Module>("unknown", *Context);
 
     // Create a new builder for the module.
     Builder = std::make_unique<llvm::IRBuilder<>>(*Context);

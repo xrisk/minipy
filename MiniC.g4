@@ -117,6 +117,7 @@ INT_LITERAL: [0-9A-Fa-f]+;
 WS: [ \t\r\n]+ -> skip;
 LPAREN: '(' ;
 RPAREN: ')' ;
+FOO: '%%' ;
 
 fragment SPACES
  : [ \t]+

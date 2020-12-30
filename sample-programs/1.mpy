@@ -1,13 +1,6 @@
-int32 pow(int32 a, int32 b) {
-    int32 prod = 1;
-    for (int32 i = 1; i <= b; i = i + 1) {
-        prod = prod * a;
-    }
-    return prod;
-}
-
-int32 readInt32() { return 5; }
-void printd(int32 val) { }
+extern void printd(int32 x);
+extern int32 readInt32();
+extern int32 pow(int32 x, int32 y);
 
 int32 func(int32 N, int32 k) {
     int32 sum = 0;

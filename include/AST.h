@@ -165,6 +165,7 @@ struct While : Statement {
   std::vector<Statement *> body;
 
   bool accept(AnalysisVisitor *vis) override;
+  void *accept(CodegenVisitor *vis) override;
   void print(int indent = 0) override;
 };
 
@@ -198,8 +199,8 @@ struct Extern : TopStatement {
 };
 
 struct ProgNode : ASTNode {
+  std::string fileName;
   std::vector<TopStatement *> body;
-
   bool accept(AnalysisVisitor *vis) override;
   void *accept(CodegenVisitor *vis) override;
   void print(int indent = 0) override;

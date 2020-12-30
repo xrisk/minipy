@@ -35,10 +35,45 @@ CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function,
   return allocate_instruction;
 }
 
+namespace {
+
+llvm::Value *GetLocationAddress(IdentifierExpr *E, CodegenVisitor *vis) {
+  auto *V = vis->NamedValues[E->id];
+  assert(V != nullptr);
+
+  if (E->idx.size() == 0) {
+    return V;
+    /* return vis->Builder->CreateLoad(V, E->id.c_str()); */
+  } else if (E->idx.size() == 1) {
+    auto idx = (llvm::Value *)E->idx[0]->accept(vis);
+    auto address = vis->Builder->CreateGEP(V, idx);
+    return address;
+  } else if (E->idx.size() == 2) {
+    auto idx0 = (llvm::Value *)E->idx[0]->accept(vis);
+    auto idx1 = (llvm::Value *)E->idx[1]->accept(vis);
+    auto sz = vis->ArraySz[E->id];
+    auto loc_base = vis->Builder->CreateMul(idx0, sz);
+    auto loc_computed = vis->Builder->CreateAdd(loc_base, idx1);
+    std::vector<llvm::Value *> vec;
+    auto zero = llvm::ConstantInt::get(llvm::Type::getInt8Ty(*vis->Context), 0);
+    vec.push_back(zero);
+    vec.push_back(loc_computed);
+    auto address = vis->Builder->CreateGEP(V, vec);
+    return address;
+  } else
+    assert(false && "unreachable code");
+}
+
+} // namespace
+
 void *ProgNode::accept(CodegenVisitor *vis) {
+  vis->TheModule->setModuleIdentifier(this->fileName);
+  vis->TheModule->setSourceFileName(this->fileName);
   for (auto fn : this->body) {
     fn->accept(vis);
   }
+  bool success = llvm::verifyModule(*vis->TheModule, &llvm::errs());
+  assert("module verify failed" && !success);
   return nullptr;
 }
 
@@ -159,7 +194,10 @@ void *FnDecl::accept(CodegenVisitor *vis) {
 
   vis->Builder->CreateRet(retVal);
 
-  llvm::verifyFunction(*F);
+  bool success = llvm::verifyFunction(*F, &llvm::errs());
+  assert("verify failed" && !success);
+
+  vis->NamedValues = oldNamedValues;
   return F;
 }
 
@@ -194,11 +232,12 @@ void *OperatorExpr::accept(CodegenVisitor *vis) {
 
   if (arity == 2) {
     llvm::Value *left;
-    if (this->op == ASSIGN) {
-      left = vis->NamedValues[((IdentifierExpr *)this->args[0])->id];
-    } else {
+    if (this->op != ASSIGN)
       left = (llvm::Value *)vis->visit(this->args[0]);
-    }
+    else
+      left = (llvm::Value *)GetLocationAddress((IdentifierExpr *)this->args[0],
+                                               vis);
+
     llvm::Value *right = (llvm::Value *)vis->visit(this->args[1]);
 
     switch (this->op) {
@@ -229,8 +268,6 @@ void *OperatorExpr::accept(CodegenVisitor *vis) {
     case OR:
       return vis->Builder->CreateOr(left, right, "ortmp");
     case ASSIGN: {
-      llvm::Value *left =
-          vis->NamedValues[((IdentifierExpr *)this->args[0])->id];
       vis->Builder->CreateStore(right, left);
       return right;
     }
@@ -247,11 +284,8 @@ void *ExprStatement::accept(CodegenVisitor *vis) {
 }
 
 void *IdentifierExpr::accept(CodegenVisitor *vis) {
-  llvm::Value *V = vis->NamedValues[this->id];
-
-  assert(V != nullptr);
-  return vis->Builder->CreateLoad(V, this->id.c_str());
-  /* return vis->NamedValues[this->id]; */
+  auto *Address = GetLocationAddress(this, vis);
+  return vis->Builder->CreateLoad(Address, this->id);
 }
 
 void *Return::accept(CodegenVisitor *vis) {
@@ -261,20 +295,45 @@ void *Return::accept(CodegenVisitor *vis) {
     return nullptr;
 }
 
+llvm::Type *constructBaseType(Type *ty, CodegenVisitor *vis) {
+  if (ty->base == minipy::Int32) {
+    return llvm::Type::getInt32Ty(*vis->Context);
+  } else if (ty->base == minipy::Bool) {
+    return llvm::Type::getInt1Ty(*vis->Context);
+  } else if (ty->base == minipy::Char) {
+    return llvm::Type::getInt1Ty(*vis->Context);
+  } else if (ty->base == minipy::Int8) {
+    return llvm::Type::getInt8Ty(*vis->Context);
+  } else {
+    assert(false && "unreachable code");
+  }
+}
+
 void *Declaration::accept(CodegenVisitor *vis) {
   std::string name = this->name;
+  auto *Ty = constructBaseType(this->datatype, vis);
 
-  if (*this->datatype == Int32) {
-    vis->NamedValues[name] = vis->Builder->CreateAlloca(
-        llvm::Type::getInt32Ty(*vis->Context), 0, name);
-  } else if (*this->datatype == Bool) {
-    vis->NamedValues[name] = vis->Builder->CreateAlloca(
-        llvm::Type::getInt1Ty(*vis->Context), 0, name);
-  } else {
-    assert(false && "not implemented");
+  if (this->datatype->dims.size() == 0) {
+    /* scalar type */
+    vis->NamedValues[name] = vis->Builder->CreateAlloca(Ty, 0, name);
+  } else if (this->datatype->dims.size() == 1) {
+    llvm::Value *size = (llvm::Value *)this->datatype->dims[0]->accept(vis);
+    vis->NamedValues[name] =
+        vis->Builder->CreateAlloca(llvm::ArrayType::get(Ty, 0), size, name);
+    vis->ArraySz[name] = size;
+  } else if (this->datatype->dims.size() == 2) {
+    llvm::Value *idx0 = (llvm::Value *)this->datatype->dims[0]->accept(vis);
+    llvm::Value *idx1 = (llvm::Value *)this->datatype->dims[1]->accept(vis);
+    llvm::Value *sz = vis->Builder->CreateMul(idx0, idx1);
+    vis->NamedValues[name] =
+        vis->Builder->CreateAlloca(llvm::ArrayType::get(Ty, 0), sz, name);
+    vis->ArraySz[name] = idx1;
   }
 
   if (this->rval) {
+    if (this->datatype->dims.size() != 0) {
+      assert(false && "array literals not supported");
+    }
     return vis->Builder->CreateStore((llvm::Value *)this->rval->accept(vis),
                                      vis->NamedValues[name]);
   }
@@ -387,4 +446,23 @@ void *BoolLiteral::accept(CodegenVisitor *vis) {
   llvm::Value *v =
       llvm::ConstantInt::get(*vis->Context, llvm::APInt(1, this->value, true));
   return v;
+}
+
+void *While::accept(CodegenVisitor *vis) {
+  llvm::Function *F = vis->Builder->GetInsertBlock()->getParent();
+
+  llvm::BasicBlock *PreBB = llvm::BasicBlock::Create(*vis->Context, "pre", F);
+  llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(*vis->Context, "loop", F);
+  llvm::BasicBlock *AfterBB =
+      llvm::BasicBlock::Create(*vis->Context, "after", F);
+
+  vis->Builder->CreateBr(PreBB);
+  vis->Builder->SetInsertPoint(PreBB);
+  llvm::Value *cmpV = (llvm::Value *)this->cond->accept(vis);
+  vis->Builder->CreateCondBr(cmpV, LoopBB, AfterBB);
+  vis->Builder->SetInsertPoint(LoopBB);
+  visitBlock(this->body, vis);
+  vis->Builder->CreateBr(PreBB);
+  vis->Builder->SetInsertPoint(AfterBB);
+  return nullptr;
 }

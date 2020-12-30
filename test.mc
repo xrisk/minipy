@@ -1,7 +1,11 @@
 extern void printd(int32 x);
-int32 main() {
-    for (int32 x = 0; x < 5; x = x + 1) {
-        printd(x);
-    }
-    return 0;
+extern int32 readInt32();
+extern int32 pow(int32 x, int32 y);
+
+void foo(int32 X) {
+
+}
+
+void main() {
+    int32[2][2] X;
 }

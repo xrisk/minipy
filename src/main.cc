@@ -13,13 +13,11 @@
 #include <fstream>
 #include <iostream>
 
-#include "ANTLRInputStream.h"
-#include "antlr4-runtime.h"
+#include <ANTLRInputStream.h>
+#include <antlr4-runtime.h>
 
 #include "generated/MiniCLexer.h"
 #include "generated/MiniCParser.h"
-#include "support/Declarations.h"
-#include "tree/ParseTree.h"
 
 #include "AST.h"
 #include "AnalysisVisitor.h"
@@ -32,7 +30,7 @@ using namespace minipy;
 int main(int argc, char **argv) {
 
   if (argc != 2) {
-    std::cout << "Usage: ./prog <filename>\n";
+    std::cout << "Usage: ./minipy <filename>\n";
     return 1;
   }
 
@@ -53,7 +51,7 @@ int main(int argc, char **argv) {
   if (err != 0)
     return 1;
 
-  ParseTreeVisitor vis;
+  ParseTreeVisitor vis(argv[1]);
   AST *ast = vis.visitProg(ctx).as<AST *>();
 
   /* ast->print(); */
@@ -67,5 +65,5 @@ int main(int argc, char **argv) {
 
   CodegenVisitor phase3;
   ast->root->accept(&phase3);
-  phase3.TheModule->print(llvm::errs(), nullptr);
+  phase3.TheModule->print(llvm::outs(), nullptr);
 }

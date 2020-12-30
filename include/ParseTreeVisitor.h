@@ -13,10 +13,15 @@ using antlrcpp::Any;
 
 class ParseTreeVisitor : public MiniCBaseVisitor {
 
+  std::string filename;
   AST *ast;
 
 public:
-  ParseTreeVisitor() { ast = new AST(); }
+  ParseTreeVisitor() { ParseTreeVisitor("stdin"); }
+  ParseTreeVisitor(std::string fName) {
+    filename = fName;
+    ast = new AST();
+  }
 
   Any visitProg(MiniCParser::ProgContext *ctx) override {
     ProgNode *p = new ProgNode();
@@ -29,6 +34,7 @@ public:
         assert(false && "unreachable code");
     }
     ast->root = p;
+    p->fileName = this->filename;
     return ast;
   }
 

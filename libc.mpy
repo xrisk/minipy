@@ -1,0 +1,8 @@
+int32 pow(int32 x, int32 y) {
+				int32 p = 1;
+				while (y > 0) {
+								p = p * x;
+								y = y - 1;
+				}
+				return p;
+}
