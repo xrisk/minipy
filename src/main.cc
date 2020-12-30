@@ -15,6 +15,7 @@
 
 #include <ANTLRInputStream.h>
 #include <antlr4-runtime.h>
+#include <llvm/IR/Verifier.h>
 
 #include "generated/MiniCLexer.h"
 #include "generated/MiniCParser.h"
@@ -66,4 +67,6 @@ int main(int argc, char **argv) {
   CodegenVisitor phase3;
   ast->root->accept(&phase3);
   phase3.TheModule->print(llvm::outs(), nullptr);
+  bool success = llvm::verifyModule(*phase3.TheModule, &llvm::errs());
+  assert("verification failed" && !success);
 }

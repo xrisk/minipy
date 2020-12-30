@@ -36,7 +36,10 @@ struct CodegenVisitor {
   virtual void *visit(CodegenVisitable *vis) { return vis->accept(this); }
   virtual ~CodegenVisitor(){};
 
-  llvm::AllocaInst *CreateEntryBlockAllocation(llvm::Function *function,
-                                               std::string *v, Type *t);
+  /* llvm::AllocaInst *CreateEntryBlockAllocation(llvm::Function *function, */
+  /*                                              std::string *v, Type *t); */
+
+  llvm::AllocaInst *CreateEntryBlockAllocation(CodegenVisitor *vis,
+                                               std::string *v, minipy::Type *t);
 };
 }; // namespace minipy

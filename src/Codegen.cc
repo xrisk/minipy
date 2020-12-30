@@ -18,23 +18,57 @@
 
 using namespace minipy;
 
-llvm::AllocaInst *
-CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function,
-                                           std::string *v, minipy::Type *t) {
-  std::string varName = *v;
-  llvm::IRBuilder<> temp(&function->getEntryBlock(),
-                         function->getEntryBlock().begin());
-  llvm::AllocaInst *allocate_instruction = nullptr;
-  if (t->base == Int32) {
-    allocate_instruction =
-        temp.CreateAlloca(llvm::Type::getInt32Ty(*this->Context), 0, varName);
-  } else if (t->base == Bool) {
-    allocate_instruction =
-        temp.CreateAlloca(llvm::Type::getInt1Ty(*this->Context), 0, varName);
+/* llvm::AllocaInst * */
+/* CodegenVisitor::CreateEntryBlockAllocation(llvm::Function *function, */
+/*                                            std::string *v, minipy::Type *t) {
+ */
+/*   std::string varName = *v; */
+/*   llvm::IRBuilder<> temp(&function->getEntryBlock(), */
+/*                          function->getEntryBlock().begin()); */
+/*   llvm::AllocaInst *allocate_instruction = nullptr; */
+/*   if (t->base == Int32) { */
+/*     allocate_instruction = */
+/*         temp.CreateAlloca(llvm::Type::getInt32Ty(*this->Context), 0,
+ * varName); */
+/*   } else if (t->base == Bool) { */
+/*     allocate_instruction = */
+/*         temp.CreateAlloca(llvm::Type::getInt1Ty(*this->Context), 0, varName);
+ */
+/*   } */
+/*   return allocate_instruction; */
+/* } */
+
+namespace {
+
+llvm::Type *constructBaseType(Type *ty, CodegenVisitor *vis) {
+  if (ty->base == minipy::Int32) {
+    return llvm::Type::getInt32Ty(*vis->Context);
+  } else if (ty->base == minipy::Bool) {
+    return llvm::Type::getInt1Ty(*vis->Context);
+  } else if (ty->base == minipy::Char) {
+    return llvm::Type::getInt1Ty(*vis->Context);
+  } else if (ty->base == minipy::Int8) {
+    return llvm::Type::getInt8Ty(*vis->Context);
+  } else {
+    assert(false && "unreachable code");
   }
-  return allocate_instruction;
 }
 
+} // namespace
+
+llvm::AllocaInst *
+CodegenVisitor::CreateEntryBlockAllocation(CodegenVisitor *vis, std::string *v,
+                                           minipy::Type *t) {
+  std::string varName = *v;
+  llvm::Type *BaseType = constructBaseType(t, vis);
+  if (t->dims.size() == 0) {
+    return vis->Builder->CreateAlloca(BaseType);
+  } else if (t->dims.size() == 1 || t->dims.size() == 2) {
+    return vis->Builder->CreateAlloca(llvm::PointerType::get(BaseType, 0));
+  } else {
+    assert(false && "unreachable code");
+  }
+}
 namespace {
 
 llvm::Value *GetLocationAddress(IdentifierExpr *E, CodegenVisitor *vis) {
@@ -45,13 +79,23 @@ llvm::Value *GetLocationAddress(IdentifierExpr *E, CodegenVisitor *vis) {
     return V;
     /* return vis->Builder->CreateLoad(V, E->id.c_str()); */
   } else if (E->idx.size() == 1) {
+    // V is either a pointer, or a pointer to a pointer
+
     auto idx = (llvm::Value *)E->idx[0]->accept(vis);
-    auto address = vis->Builder->CreateGEP(V, idx);
-    return address;
+
+    if (!V->getType()->getElementType()->isPointerTy()) {
+      std::vector<llvm::Value *> vec;
+      vec.push_back(idx);
+      return vis->Builder->CreateGEP(V, vec);
+    }
+
+    auto Address = vis->Builder->CreateLoad(V);
+    return vis->Builder->CreateGEP(Address, idx);
   } else if (E->idx.size() == 2) {
     auto idx0 = (llvm::Value *)E->idx[0]->accept(vis);
     auto idx1 = (llvm::Value *)E->idx[1]->accept(vis);
     auto sz = vis->ArraySz[E->id];
+    assert("array size not found" && sz != nullptr);
     auto loc_base = vis->Builder->CreateMul(idx0, sz);
     auto loc_computed = vis->Builder->CreateAdd(loc_base, idx1);
     std::vector<llvm::Value *> vec;
@@ -72,8 +116,10 @@ void *ProgNode::accept(CodegenVisitor *vis) {
   for (auto fn : this->body) {
     fn->accept(vis);
   }
-  bool success = llvm::verifyModule(*vis->TheModule, &llvm::errs());
-  assert("module verify failed" && !success);
+  /* bool success = llvm::verifyModule(*vis->TheModule, &llvm::errs()); */
+  /* if (!success) */
+  /*   vis->TheModule->print(llvm::errs(), nullptr); */
+  /* assert("module verify failed" && !success); */
   return nullptr;
 }
 
@@ -134,16 +180,26 @@ void *Extern::accept(CodegenVisitor *vis) {
   return F;
 }
 
+namespace {
+llvm::Type *getLLVMBaseType(minipy::Type *T, CodegenVisitor *vis) {
+  if (T->base == minipy::Int32) {
+    return static_cast<llvm::Type *>(llvm::Type::getInt32Ty(*vis->Context));
+  } else
+    assert(false && "type not implemented!");
+}
+} // namespace
+
 void *FnDecl::accept(CodegenVisitor *vis) {
   std::vector<llvm::Type *> argument_types;
   for (auto arg : this->args) {
-    if (arg.first->base == Int32) {
-      argument_types.push_back(llvm::Type::getInt32Ty(*vis->Context));
-    } else if (arg.first->base == Bool) {
-      argument_types.push_back(llvm::Type::getInt1Ty(*vis->Context));
+    llvm::Type *BaseType = getLLVMBaseType(arg.first, vis);
+    if (arg.first->dims.size() == 0) {
+      argument_types.push_back(getLLVMBaseType(arg.first, vis));
+    } else if (arg.first->dims.size() == 1) {
+      auto T = llvm::PointerType::get(BaseType, 0);
+      argument_types.push_back(T);
     } else {
       assert(false && "unreachable code");
-      return nullptr;
     }
   }
 
@@ -183,7 +239,7 @@ void *FnDecl::accept(CodegenVisitor *vis) {
   while (arg_it != this->args.end() and llvm_arg_it != F->arg_end()) {
     auto my_arg_ptr = *arg_it;
     llvm::AllocaInst *alloca = vis->CreateEntryBlockAllocation(
-        F, &my_arg_ptr.second, my_arg_ptr.first);
+        vis, &my_arg_ptr.second, my_arg_ptr.first);
     vis->Builder->CreateStore(llvm_arg_it, alloca);
     vis->NamedValues[my_arg_ptr.second] = alloca;
     arg_it++;
@@ -194,8 +250,8 @@ void *FnDecl::accept(CodegenVisitor *vis) {
 
   vis->Builder->CreateRet(retVal);
 
-  bool success = llvm::verifyFunction(*F, &llvm::errs());
-  assert("verify failed" && !success);
+  /* bool success = llvm::verifyFunction(*F, &llvm::errs()); */
+  /* assert("verify failed" && !success); */
 
   vis->NamedValues = oldNamedValues;
   return F;
@@ -285,7 +341,17 @@ void *ExprStatement::accept(CodegenVisitor *vis) {
 
 void *IdentifierExpr::accept(CodegenVisitor *vis) {
   auto *Address = GetLocationAddress(this, vis);
-  return vis->Builder->CreateLoad(Address, this->id);
+  auto T = vis->NamedValues[this->id]->isArrayAllocation();
+  if (this->idx.size() == 0 && T) {
+    // foo(X) when X is an array
+    return Address;
+    /* std::vector<llvm::Value *> idx; */
+    /* idx.push_back(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*vis->Context),
+     */
+    /*                                      llvm::APInt())); */
+    /* return vis->Builder->CreateGEP(Address, idx); */
+  } else
+    return vis->Builder->CreateLoad(Address, this->id);
 }
 
 void *Return::accept(CodegenVisitor *vis) {
@@ -293,20 +359,6 @@ void *Return::accept(CodegenVisitor *vis) {
     return vis->visit(this->expr);
   else
     return nullptr;
-}
-
-llvm::Type *constructBaseType(Type *ty, CodegenVisitor *vis) {
-  if (ty->base == minipy::Int32) {
-    return llvm::Type::getInt32Ty(*vis->Context);
-  } else if (ty->base == minipy::Bool) {
-    return llvm::Type::getInt1Ty(*vis->Context);
-  } else if (ty->base == minipy::Char) {
-    return llvm::Type::getInt1Ty(*vis->Context);
-  } else if (ty->base == minipy::Int8) {
-    return llvm::Type::getInt8Ty(*vis->Context);
-  } else {
-    assert(false && "unreachable code");
-  }
 }
 
 void *Declaration::accept(CodegenVisitor *vis) {
@@ -318,15 +370,13 @@ void *Declaration::accept(CodegenVisitor *vis) {
     vis->NamedValues[name] = vis->Builder->CreateAlloca(Ty, 0, name);
   } else if (this->datatype->dims.size() == 1) {
     llvm::Value *size = (llvm::Value *)this->datatype->dims[0]->accept(vis);
-    vis->NamedValues[name] =
-        vis->Builder->CreateAlloca(llvm::ArrayType::get(Ty, 0), size, name);
+    vis->NamedValues[name] = vis->Builder->CreateAlloca(Ty, size, name);
     vis->ArraySz[name] = size;
   } else if (this->datatype->dims.size() == 2) {
     llvm::Value *idx0 = (llvm::Value *)this->datatype->dims[0]->accept(vis);
     llvm::Value *idx1 = (llvm::Value *)this->datatype->dims[1]->accept(vis);
     llvm::Value *sz = vis->Builder->CreateMul(idx0, idx1);
-    vis->NamedValues[name] =
-        vis->Builder->CreateAlloca(llvm::ArrayType::get(Ty, 0), sz, name);
+    vis->NamedValues[name] = vis->Builder->CreateAlloca(Ty, sz, name);
     vis->ArraySz[name] = idx1;
   }
 
@@ -406,7 +456,6 @@ void *If::accept(CodegenVisitor *vis) {
 }
 
 void *ForNode::accept(CodegenVisitor *vis) {
-
   llvm::Function *F = vis->Builder->GetInsertBlock()->getParent();
 
   llvm::BasicBlock *PreBB = llvm::BasicBlock::Create(*vis->Context, "pre", F);
@@ -442,7 +491,6 @@ void *ForNode::accept(CodegenVisitor *vis) {
 }
 
 void *BoolLiteral::accept(CodegenVisitor *vis) {
-
   llvm::Value *v =
       llvm::ConstantInt::get(*vis->Context, llvm::APInt(1, this->value, true));
   return v;
