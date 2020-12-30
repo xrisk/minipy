@@ -7,3 +7,5 @@ compile_commands.json
 *.o
 *.exe
 out*
+pch/
+optim
