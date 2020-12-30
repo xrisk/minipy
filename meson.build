@@ -25,5 +25,5 @@ lcurses = cc.find_library('curses')
 our_headers = include_directories('./include')
 sources = ['src/main.cc', 'src/Codegen.cc', 'src/Scope.cc', 'src/AnalysisVisitor.cc', 'src/AnalysisVisitable.cc', 'src/Analysis.cc', 'src/AST.cc']
 
-executable('minipy', sources, generated_source, dependencies : [antlr_lib, l1, l2, l3, l4, l5, l6, lcurses], include_directories: [llvm_inc, antlr_inc, generated_inc, our_headers])
+executable('minipy', sources, generated_source, dependencies : [antlr_lib, l1, l2, l3, l4, l5, l6, lcurses], include_directories: [llvm_inc, antlr_inc, generated_inc, our_headers], cpp_pch: 'pch/minipy_pch.h')
 
